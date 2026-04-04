@@ -44,17 +44,22 @@ class PetsState {
       pets: pets ?? this.pets,
       isLoading: isLoading ?? this.isLoading,
       error: error ?? this.error,
-      speciesFilter: clearSpeciesFilter ? null : speciesFilter ?? this.speciesFilter,
+      speciesFilter:
+          clearSpeciesFilter ? null : speciesFilter ?? this.speciesFilter,
       sizeFilter: clearSizeFilter ? null : sizeFilter ?? this.sizeFilter,
-      genderFilter: clearGenderFilter ? null : genderFilter ?? this.genderFilter,
+      genderFilter:
+          clearGenderFilter ? null : genderFilter ?? this.genderFilter,
     );
   }
 }
 
 /// Notifier responsável pelo gerenciamento do feed de animais.
-class PetsNotifier extends StateNotifier<PetsState> {
-  PetsNotifier() : super(const PetsState()) {
-    loadPets();
+class PetsNotifier extends Notifier<PetsState> {
+  @override
+  PetsState build() {
+    // Carrega os pets assim que o provider é criado
+    Future.microtask(loadPets);
+    return const PetsState();
   }
 
   /// Carrega a lista de animais disponíveis.
@@ -102,8 +107,8 @@ class PetsNotifier extends StateNotifier<PetsState> {
 }
 
 /// Provider global de pets.
-final petsProvider = StateNotifierProvider<PetsNotifier, PetsState>(
-  (ref) => PetsNotifier(),
+final petsProvider = NotifierProvider<PetsNotifier, PetsState>(
+  PetsNotifier.new,
 );
 
 /// Provider para um pet específico por ID.

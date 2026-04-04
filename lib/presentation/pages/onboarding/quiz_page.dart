@@ -223,7 +223,7 @@ class _OptionList<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView.separated(
       itemCount: options.length,
-      separatorBuilder: (_, __) =>
+      separatorBuilder: (_, _) =>
           const SizedBox(height: AppDimensions.sm),
       itemBuilder: (context, index) {
         final option = options[index];

@@ -76,7 +76,7 @@ class MyPetsPage extends ConsumerWidget {
           : ListView.separated(
               padding: const EdgeInsets.all(AppDimensions.md),
               itemCount: myPets.length,
-              separatorBuilder: (_, __) =>
+              separatorBuilder: (_, _) =>
                   const SizedBox(height: AppDimensions.sm),
               itemBuilder: (context, index) {
                 final pet = myPets[index];
@@ -106,7 +106,7 @@ class _DonorPetCard extends StatelessWidget {
                 ? Image.network(
                     pet.photos.first,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    errorBuilder: (_, _, _) => Container(
                       color: AppColors.surfaceVariant,
                       child: const Icon(Icons.pets, color: AppColors.textHint),
                     ),
