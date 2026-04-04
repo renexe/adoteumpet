@@ -35,8 +35,9 @@ class AuthState {
 ///
 /// Na versão MVP sem Firebase, simula o fluxo de autenticação
 /// com dados mock. A integração real será adicionada na próxima fase.
-class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier() : super(const AuthState());
+class AuthNotifier extends Notifier<AuthState> {
+  @override
+  AuthState build() => const AuthState();
 
   /// Simula login com e-mail e senha.
   Future<void> signInWithEmail({
@@ -91,8 +92,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
 }
 
 /// Provider global de autenticação.
-final authProvider = StateNotifierProvider<AuthNotifier, AuthState>(
-  (ref) => AuthNotifier(),
+final authProvider = NotifierProvider<AuthNotifier, AuthState>(
+  AuthNotifier.new,
 );
 
 /// Provider conveniente para acessar o usuário atual.

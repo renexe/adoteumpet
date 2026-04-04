@@ -3,9 +3,12 @@ import '../../domain/entities/chat_message.dart';
 import '../../data/datasources/mock/mock_user_data.dart';
 
 /// Gerencia o estado das conversas do usuário.
-class ChatNotifier extends StateNotifier<List<Chat>> {
-  ChatNotifier() : super([]) {
-    _loadChats();
+class ChatNotifier extends Notifier<List<Chat>> {
+  @override
+  List<Chat> build() {
+    // Carrega os chats mock assim que o provider é criado
+    Future.microtask(_loadChats);
+    return [];
   }
 
   Future<void> _loadChats() async {
@@ -57,7 +60,8 @@ class ChatNotifier extends StateNotifier<List<Chat>> {
     required String petPhoto,
   }) {
     // Verifica se já existe um chat para este pet
-    final exists = state.any((c) => c.petId == petId && c.adopterId == adopterId);
+    final exists =
+        state.any((c) => c.petId == petId && c.adopterId == adopterId);
     if (exists) return;
 
     final newChat = Chat(
@@ -80,8 +84,8 @@ class ChatNotifier extends StateNotifier<List<Chat>> {
 }
 
 /// Provider global de chats.
-final chatProvider = StateNotifierProvider<ChatNotifier, List<Chat>>(
-  (ref) => ChatNotifier(),
+final chatProvider = NotifierProvider<ChatNotifier, List<Chat>>(
+  ChatNotifier.new,
 );
 
 /// Provider para um chat específico por ID.

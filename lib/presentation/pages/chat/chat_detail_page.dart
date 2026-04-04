@@ -85,7 +85,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                 child: CachedNetworkImage(
                   imageUrl: chat.petPhoto,
                   fit: BoxFit.cover,
-                  errorWidget: (_, __, ___) => Container(
+                  errorWidget: (_, _, _) => Container(
                     color: AppColors.surfaceVariant,
                     child: const Icon(Icons.pets,
                         color: AppColors.textHint, size: 20),

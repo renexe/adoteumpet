@@ -3,8 +3,9 @@ import '../../domain/entities/pet.dart';
 import 'pets_provider.dart';
 
 /// Gerencia a lista de animais favoritos do usuário.
-class FavoritesNotifier extends StateNotifier<List<String>> {
-  FavoritesNotifier() : super([]);
+class FavoritesNotifier extends Notifier<List<String>> {
+  @override
+  List<String> build() => [];
 
   /// Alterna o estado de favorito de um animal.
   void toggleFavorite(String petId) {
@@ -20,8 +21,8 @@ class FavoritesNotifier extends StateNotifier<List<String>> {
 }
 
 /// Provider global de favoritos.
-final favoritesProvider = StateNotifierProvider<FavoritesNotifier, List<String>>(
-  (ref) => FavoritesNotifier(),
+final favoritesProvider = NotifierProvider<FavoritesNotifier, List<String>>(
+  FavoritesNotifier.new,
 );
 
 /// Provider que retorna a lista completa de pets favoritos.

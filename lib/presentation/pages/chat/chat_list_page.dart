@@ -57,7 +57,7 @@ class ChatListPage extends ConsumerWidget {
             )
           : ListView.separated(
               itemCount: chats.length,
-              separatorBuilder: (_, __) =>
+              separatorBuilder: (_, _) =>
                   const Divider(height: 1, color: AppColors.divider),
               itemBuilder: (context, index) {
                 final chat = chats[index];
