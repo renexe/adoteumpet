@@ -147,7 +147,7 @@ abstract final class AppTheme {
       ),
 
       // Cards
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: AppColors.surface,
         elevation: AppDimensions.elevationSm,
         shadowColor: AppColors.shadow,
