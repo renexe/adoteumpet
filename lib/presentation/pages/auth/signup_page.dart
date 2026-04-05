@@ -5,7 +5,6 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_dimensions.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../core/widgets/app_text_field.dart';
-import '../../../domain/entities/app_user.dart';
 import '../../../presentation/providers/auth_provider.dart';
 
 class SignUpPage extends ConsumerStatefulWidget {
@@ -21,7 +20,6 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  UserType _userType = UserType.adopter;
 
   @override
   void dispose() {
@@ -37,7 +35,6 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           name: _nameController.text.trim(),
           email: _emailController.text.trim(),
           password: _passwordController.text,
-          userType: _userType,
         );
   }
 
@@ -68,40 +65,10 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                 ),
                 const SizedBox(height: AppDimensions.xs),
                 Text(
-                  'Crie sua conta para começar.',
+                  'Crie sua conta para adotar ou cadastrar animais para doação.',
                   style: AppTextStyles.bodyMedium.copyWith(
                     color: AppColors.textSecondary,
                   ),
-                ),
-                const SizedBox(height: AppDimensions.xl),
-
-                // Seleção de tipo de usuário
-                Text('Você é:', style: AppTextStyles.titleMedium),
-                const SizedBox(height: AppDimensions.sm),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _UserTypeCard(
-                        icon: Icons.favorite_outline,
-                        title: 'Adotante',
-                        subtitle: 'Quero adotar um pet',
-                        isSelected: _userType == UserType.adopter,
-                        onTap: () =>
-                            setState(() => _userType = UserType.adopter),
-                      ),
-                    ),
-                    const SizedBox(width: AppDimensions.md),
-                    Expanded(
-                      child: _UserTypeCard(
-                        icon: Icons.volunteer_activism_outlined,
-                        title: 'Doador',
-                        subtitle: 'Tenho pets para doação',
-                        isSelected: _userType == UserType.donor,
-                        onTap: () =>
-                            setState(() => _userType = UserType.donor),
-                      ),
-                    ),
-                  ],
                 ),
                 const SizedBox(height: AppDimensions.xl),
 
@@ -194,65 +161,6 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _UserTypeCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _UserTypeCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(AppDimensions.md),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.1)
-              : AppColors.surface,
-          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.border,
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              size: AppDimensions.iconXl,
-              color: isSelected ? AppColors.primary : AppColors.textSecondary,
-            ),
-            const SizedBox(height: AppDimensions.sm),
-            Text(
-              title,
-              style: AppTextStyles.titleMedium.copyWith(
-                color: isSelected ? AppColors.primary : AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: AppDimensions.xs),
-            Text(
-              subtitle,
-              style: AppTextStyles.bodySmall,
-              textAlign: TextAlign.center,
-            ),
-          ],
         ),
       ),
     );

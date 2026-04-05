@@ -16,7 +16,7 @@ class MyPetsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
     final allPets = ref.watch(petsProvider).pets;
-    final myPets = allPets.where((p) => p.donorId == user?.uid).toList();
+    final myPets = allPets.where((p) => p.ownerId == user?.uid).toList();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -80,17 +80,17 @@ class MyPetsPage extends ConsumerWidget {
                   const SizedBox(height: AppDimensions.sm),
               itemBuilder: (context, index) {
                 final pet = myPets[index];
-                return _DonorPetCard(pet: pet);
+                return _OwnerPetCard(pet: pet);
               },
             ),
     );
   }
 }
 
-class _DonorPetCard extends StatelessWidget {
+class _OwnerPetCard extends StatelessWidget {
   final Pet pet;
 
-  const _DonorPetCard({required this.pet});
+  const _OwnerPetCard({required this.pet});
 
   @override
   Widget build(BuildContext context) {

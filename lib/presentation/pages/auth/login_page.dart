@@ -20,7 +20,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  bool _isDonor = false;
 
   @override
   void dispose() {
@@ -34,7 +33,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     await ref.read(authProvider.notifier).signInWithEmail(
           email: _emailController.text.trim(),
           password: _passwordController.text,
-          isDonor: _isDonor,
         );
   }
 
@@ -139,71 +137,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     }
                     return null;
                   },
-                ),
-                const SizedBox(height: AppDimensions.md),
-
-                // Toggle Adotante / Doador
-                Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceVariant,
-                    borderRadius:
-                        BorderRadius.circular(AppDimensions.radiusMd),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _isDonor = false),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: AppDimensions.sm + 2),
-                            decoration: BoxDecoration(
-                              color: !_isDonor
-                                  ? AppColors.primary
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(
-                                  AppDimensions.radiusMd - 1),
-                            ),
-                            child: Text(
-                              'Quero Adotar',
-                              textAlign: TextAlign.center,
-                              style: AppTextStyles.labelLarge.copyWith(
-                                color: !_isDonor
-                                    ? Colors.white
-                                    : AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _isDonor = true),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: AppDimensions.sm + 2),
-                            decoration: BoxDecoration(
-                              color: _isDonor
-                                  ? AppColors.primary
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(
-                                  AppDimensions.radiusMd - 1),
-                            ),
-                            child: Text(
-                              'Quero Doar',
-                              textAlign: TextAlign.center,
-                              style: AppTextStyles.labelLarge.copyWith(
-                                color: _isDonor
-                                    ? Colors.white
-                                    : AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
                 const SizedBox(height: AppDimensions.xl),
 

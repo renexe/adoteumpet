@@ -37,7 +37,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isAuthenticated = authState.isAuthenticated;
       final isOnAuthPage = state.matchedLocation == AppRoutes.login ||
           state.matchedLocation == AppRoutes.signup;
-      final isOnQuiz = state.matchedLocation == AppRoutes.quiz;
 
       // Redireciona para login se não autenticado
       if (!isAuthenticated && !isOnAuthPage) {
@@ -46,19 +45,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Redireciona para home se já autenticado e tentando acessar auth
       if (isAuthenticated && isOnAuthPage) {
-        final user = authState.user!;
-        if (user.isAdopter && !user.hasCompletedQuiz) {
-          return AppRoutes.quiz;
-        }
         return AppRoutes.home;
-      }
-
-      // Redireciona para quiz se adotante sem quiz completo
-      if (isAuthenticated && !isOnQuiz) {
-        final user = authState.user!;
-        if (user.isAdopter && !user.hasCompletedQuiz) {
-          return AppRoutes.quiz;
-        }
       }
 
       return null;

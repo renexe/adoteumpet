@@ -104,9 +104,9 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    user?.uid == chat.adopterId
-                        ? 'Doador: ${chat.donorName}'
-                        : 'Adotante: ${chat.adopterName}',
+                    user?.uid == chat.requesterId
+                        ? 'Responsável: ${chat.ownerName}'
+                        : 'Interessado: ${chat.requesterName}',
                     style: AppTextStyles.bodySmall,
                     overflow: TextOverflow.ellipsis,
                   ),
