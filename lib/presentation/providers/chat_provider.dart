@@ -34,10 +34,10 @@ class ChatNotifier extends Notifier<List<Chat>> {
       if (chat.chatId != chatId) return chat;
       return Chat(
         chatId: chat.chatId,
-        adopterId: chat.adopterId,
-        adopterName: chat.adopterName,
-        donorId: chat.donorId,
-        donorName: chat.donorName,
+        requesterId: chat.requesterId,
+        requesterName: chat.requesterName,
+        ownerId: chat.ownerId,
+        ownerName: chat.ownerName,
         petId: chat.petId,
         petName: chat.petName,
         petPhoto: chat.petPhoto,
@@ -51,25 +51,25 @@ class ChatNotifier extends Notifier<List<Chat>> {
 
   /// Cria um novo chat ao demonstrar interesse em um animal.
   void createChat({
-    required String adopterId,
-    required String adopterName,
-    required String donorId,
-    required String donorName,
+    required String requesterId,
+    required String requesterName,
+    required String ownerId,
+    required String ownerName,
     required String petId,
     required String petName,
     required String petPhoto,
   }) {
-    // Verifica se já existe um chat para este pet
+    // Verifica se já existe um chat para este pet com este interessado
     final exists =
-        state.any((c) => c.petId == petId && c.adopterId == adopterId);
+        state.any((c) => c.petId == petId && c.requesterId == requesterId);
     if (exists) return;
 
     final newChat = Chat(
       chatId: 'chat_${DateTime.now().millisecondsSinceEpoch}',
-      adopterId: adopterId,
-      adopterName: adopterName,
-      donorId: donorId,
-      donorName: donorName,
+      requesterId: requesterId,
+      requesterName: requesterName,
+      ownerId: ownerId,
+      ownerName: ownerName,
       petId: petId,
       petName: petName,
       petPhoto: petPhoto,

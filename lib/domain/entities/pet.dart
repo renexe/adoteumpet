@@ -1,7 +1,7 @@
 /// Representa um animal disponível para adoção.
 class Pet {
   final String id;
-  final String donorId;
+  final String ownerId;
   final String name;
   final PetSpecies species;
   final String breed;
@@ -19,7 +19,7 @@ class Pet {
 
   const Pet({
     required this.id,
-    required this.donorId,
+    required this.ownerId,
     required this.name,
     required this.species,
     required this.breed,
@@ -38,7 +38,7 @@ class Pet {
 
   Pet copyWith({
     String? id,
-    String? donorId,
+    String? ownerId,
     String? name,
     PetSpecies? species,
     String? breed,
@@ -56,7 +56,7 @@ class Pet {
   }) {
     return Pet(
       id: id ?? this.id,
-      donorId: donorId ?? this.donorId,
+      ownerId: ownerId ?? this.ownerId,
       name: name ?? this.name,
       species: species ?? this.species,
       breed: breed ?? this.breed,

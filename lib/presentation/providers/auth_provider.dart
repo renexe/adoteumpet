@@ -43,7 +43,6 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> signInWithEmail({
     required String email,
     required String password,
-    required bool isDonor,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
 
@@ -51,8 +50,7 @@ class AuthNotifier extends Notifier<AuthState> {
     await Future.delayed(const Duration(milliseconds: 800));
 
     // Mock: qualquer credencial é aceita
-    final user = isDonor ? MockUserData.donorUser : MockUserData.adopterUser;
-    state = state.copyWith(user: user, isLoading: false);
+    state = state.copyWith(user: MockUserData.mockUser, isLoading: false);
   }
 
   /// Simula cadastro de novo usuário.
@@ -60,7 +58,6 @@ class AuthNotifier extends Notifier<AuthState> {
     required String name,
     required String email,
     required String password,
-    required UserType userType,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
 
@@ -70,17 +67,9 @@ class AuthNotifier extends Notifier<AuthState> {
       uid: 'new_user_${DateTime.now().millisecondsSinceEpoch}',
       email: email,
       displayName: name,
-      userType: userType,
       createdAt: DateTime.now(),
     );
     state = state.copyWith(user: user, isLoading: false);
-  }
-
-  /// Salva as respostas do quiz de estilo de vida.
-  void saveQuizAnswers(QuizAnswers answers) {
-    if (state.user == null) return;
-    final updatedUser = state.user!.copyWith(quizAnswers: answers);
-    state = state.copyWith(user: updatedUser);
   }
 
   /// Realiza o logout do usuário.

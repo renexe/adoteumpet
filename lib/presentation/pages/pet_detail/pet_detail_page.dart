@@ -6,6 +6,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_dimensions.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../domain/entities/pet.dart';
+import '../../../domain/entities/app_user.dart';
 import '../../../presentation/providers/pets_provider.dart';
 import '../../../presentation/providers/favorites_provider.dart';
 import '../../../presentation/providers/auth_provider.dart';
@@ -248,14 +249,13 @@ class _PetDetailPageState extends ConsumerState<PetDetailPage> {
         ],
       ),
 
-      // Botão fixo de adoção
-      bottomNavigationBar: pet.status == PetStatus.available &&
-              (user?.isAdopter ?? false)
+      // Botão fixo de adoção — disponível para qualquer usuário autenticado
+      bottomNavigationBar: pet.status == PetStatus.available && user != null
           ? SafeArea(
               child: Padding(
                 padding: const EdgeInsets.all(AppDimensions.md),
                 child: ElevatedButton.icon(
-                  onPressed: () => _showAdoptionDialog(context, ref, pet, user!),
+                  onPressed: () => _showAdoptionDialog(context, ref, pet, user),
                   icon: const Icon(Icons.favorite),
                   label: const Text('Quero Adotar'),
                 ),
@@ -291,8 +291,9 @@ class _PetDetailPageState extends ConsumerState<PetDetailPage> {
     BuildContext context,
     WidgetRef ref,
     Pet pet,
-    appUser,
+    AppUser? appUser,
   ) {
+    if (appUser == null) return;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -304,7 +305,7 @@ class _PetDetailPageState extends ConsumerState<PetDetailPage> {
           style: AppTextStyles.headlineSmall,
         ),
         content: Text(
-          'Ao confirmar, você iniciará uma conversa com o doador. Lembre-se: adotar é um compromisso para a vida toda!',
+          'Ao confirmar, você iniciará uma conversa com o responsável pelo animal. Lembre-se: adotar é um compromisso para a vida toda!',
           style: AppTextStyles.bodyMedium,
         ),
         actions: [
@@ -315,10 +316,10 @@ class _PetDetailPageState extends ConsumerState<PetDetailPage> {
           ElevatedButton(
             onPressed: () {
               ref.read(chatProvider.notifier).createChat(
-                    adopterId: appUser.uid,
-                    adopterName: appUser.displayName,
-                    donorId: pet.donorId,
-                    donorName: 'Doador',
+                    requesterId: appUser.uid,
+                    requesterName: appUser.displayName,
+                    ownerId: pet.ownerId,
+                    ownerName: 'Responsável',
                     petId: pet.id,
                     petName: pet.name,
                     petPhoto: pet.photos.isNotEmpty ? pet.photos.first : '',
