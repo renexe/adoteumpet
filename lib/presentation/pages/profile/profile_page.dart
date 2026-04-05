@@ -64,142 +64,88 @@ class ProfilePage extends ConsumerWidget {
                       color: AppColors.textSecondary,
                     ),
                   ),
-                  const SizedBox(height: AppDimensions.sm),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppDimensions.md,
-                      vertical: AppDimensions.xs,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      borderRadius:
-                          BorderRadius.circular(AppDimensions.radiusFull),
-                    ),
-                    child: Text(
-                      user?.userType.label ?? '',
-                      style: AppTextStyles.labelMedium.copyWith(
-                        color: AppColors.primary,
+                  if (user?.bio != null && user!.bio!.isNotEmpty) ...[
+                    const SizedBox(height: AppDimensions.sm),
+                    Text(
+                      user.bio!,
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textSecondary,
                       ),
+                      textAlign: TextAlign.center,
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
 
             const SizedBox(height: AppDimensions.sm),
 
-            // Seção de favoritos (apenas adotantes)
-            if (user?.isAdopter == true) ...[
-              Container(
-                color: AppColors.surface,
-                padding: const EdgeInsets.all(AppDimensions.md),
-                child: Row(
+            // Seção de favoritos
+            Container(
+              color: AppColors.surface,
+              padding: const EdgeInsets.all(AppDimensions.md),
+              child: Row(
+                children: [
+                  const Icon(Icons.favorite, color: AppColors.primary),
+                  const SizedBox(width: AppDimensions.sm),
+                  Text('Favoritos', style: AppTextStyles.titleLarge),
+                  const Spacer(),
+                  Text(
+                    '${favoritePets.length} pets',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            if (favoritePets.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(AppDimensions.xl),
+                child: Column(
                   children: [
-                    const Icon(Icons.favorite, color: AppColors.primary),
-                    const SizedBox(width: AppDimensions.sm),
-                    Text('Favoritos', style: AppTextStyles.titleLarge),
-                    const Spacer(),
+                    const Icon(
+                      Icons.favorite_border,
+                      size: 48,
+                      color: AppColors.textHint,
+                    ),
+                    const SizedBox(height: AppDimensions.md),
                     Text(
-                      '${favoritePets.length} pets',
-                      style: AppTextStyles.bodyMedium.copyWith(
+                      'Nenhum favorito ainda',
+                      style: AppTextStyles.bodyLarge.copyWith(
                         color: AppColors.textSecondary,
                       ),
                     ),
-                  ],
-                ),
-              ),
-
-              if (favoritePets.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(AppDimensions.xl),
-                  child: Column(
-                    children: [
-                      const Icon(
-                        Icons.favorite_border,
-                        size: 48,
+                    const SizedBox(height: AppDimensions.xs),
+                    Text(
+                      'Toque no coração de um pet para salvá-lo aqui.',
+                      style: AppTextStyles.bodyMedium.copyWith(
                         color: AppColors.textHint,
                       ),
-                      const SizedBox(height: AppDimensions.md),
-                      Text(
-                        'Nenhum favorito ainda',
-                        style: AppTextStyles.bodyLarge.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: AppDimensions.xs),
-                      Text(
-                        'Toque no coração de um pet para salvá-lo aqui.',
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.textHint,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                )
-              else
-                Padding(
-                  padding: const EdgeInsets.all(AppDimensions.md),
-                  child: GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: AppDimensions.sm,
-                      mainAxisSpacing: AppDimensions.sm,
-                      childAspectRatio: 0.72,
-                    ),
-                    itemCount: favoritePets.length,
-                    itemBuilder: (context, index) =>
-                        PetCard(pet: favoritePets[index]),
-                  ),
-                ),
-            ],
-
-            // Informações do quiz (adotantes)
-            if (user?.isAdopter == true && user?.quizAnswers != null) ...[
-              const SizedBox(height: AppDimensions.sm),
-              Container(
-                color: AppColors.surface,
-                padding: const EdgeInsets.all(AppDimensions.md),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.quiz_outlined,
-                            color: AppColors.secondary),
-                        const SizedBox(width: AppDimensions.sm),
-                        Text('Meu Perfil de Adotante',
-                            style: AppTextStyles.titleLarge),
-                      ],
-                    ),
-                    const SizedBox(height: AppDimensions.md),
-                    _InfoRow(
-                      icon: Icons.home_outlined,
-                      label: 'Moradia',
-                      value: user!.quizAnswers!.housing.label,
-                    ),
-                    _InfoRow(
-                      icon: Icons.schedule_outlined,
-                      label: 'Tempo disponível',
-                      value: user.quizAnswers!.availableTime.label,
-                    ),
-                    _InfoRow(
-                      icon: Icons.child_care_outlined,
-                      label: 'Tem crianças',
-                      value: user.quizAnswers!.hasChildren ? 'Sim' : 'Não',
-                    ),
-                    _InfoRow(
-                      icon: Icons.pets_outlined,
-                      label: 'Tem outros pets',
-                      value: user.quizAnswers!.hasOtherPets ? 'Sim' : 'Não',
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.all(AppDimensions.md),
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: AppDimensions.sm,
+                    mainAxisSpacing: AppDimensions.sm,
+                    childAspectRatio: 0.72,
+                  ),
+                  itemCount: favoritePets.length,
+                  itemBuilder: (context, index) =>
+                      PetCard(pet: favoritePets[index]),
+                ),
               ),
-            ],
 
             const SizedBox(height: AppDimensions.xl),
           ],
@@ -234,45 +180,6 @@ class ProfilePage extends ConsumerWidget {
               backgroundColor: AppColors.error,
             ),
             child: const Text('Sair'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-
-  const _InfoRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppDimensions.xs),
-      child: Row(
-        children: [
-          Icon(icon, size: AppDimensions.iconMd, color: AppColors.textSecondary),
-          const SizedBox(width: AppDimensions.sm),
-          Text(
-            '$label: ',
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: AppTextStyles.bodyMedium.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
           ),
         ],
       ),

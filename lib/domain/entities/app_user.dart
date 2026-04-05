@@ -1,11 +1,13 @@
 /// Representa um usuário autenticado no aplicativo.
+///
+/// Não há distinção entre doador e adotante: qualquer usuário pode
+/// cadastrar animais para doação e também se candidatar a adotar.
 class AppUser {
   final String uid;
   final String email;
   final String displayName;
   final String? profilePicture;
-  final UserType userType;
-  final QuizAnswers? quizAnswers;
+  final String? bio;
   final DateTime createdAt;
 
   const AppUser({
@@ -13,22 +15,16 @@ class AppUser {
     required this.email,
     required this.displayName,
     this.profilePicture,
-    required this.userType,
-    this.quizAnswers,
+    this.bio,
     required this.createdAt,
   });
-
-  bool get isAdopter => userType == UserType.adopter;
-  bool get isDonor => userType == UserType.donor;
-  bool get hasCompletedQuiz => quizAnswers != null;
 
   AppUser copyWith({
     String? uid,
     String? email,
     String? displayName,
     String? profilePicture,
-    UserType? userType,
-    QuizAnswers? quizAnswers,
+    String? bio,
     DateTime? createdAt,
   }) {
     return AppUser(
@@ -36,38 +32,13 @@ class AppUser {
       email: email ?? this.email,
       displayName: displayName ?? this.displayName,
       profilePicture: profilePicture ?? this.profilePicture,
-      userType: userType ?? this.userType,
-      quizAnswers: quizAnswers ?? this.quizAnswers,
+      bio: bio ?? this.bio,
       createdAt: createdAt ?? this.createdAt,
     );
   }
 }
 
-/// Respostas do quiz de estilo de vida do adotante.
-class QuizAnswers {
-  final HousingType housing;
-  final AvailableTime availableTime;
-  final bool hasChildren;
-  final bool hasOtherPets;
-  final List<String> traits;
-
-  const QuizAnswers({
-    required this.housing,
-    required this.availableTime,
-    required this.hasChildren,
-    required this.hasOtherPets,
-    this.traits = const [],
-  });
-}
-
-enum UserType {
-  adopter('Adotante'),
-  donor('Doador');
-
-  final String label;
-  const UserType(this.label);
-}
-
+/// Tipos de moradia do usuário — usados para filtrar animais compatíveis.
 enum HousingType {
   smallApartment('Apartamento pequeno'),
   largeApartment('Apartamento grande'),
@@ -78,6 +49,7 @@ enum HousingType {
   const HousingType(this.label);
 }
 
+/// Tempo disponível por dia para cuidar de um animal.
 enum AvailableTime {
   lessThan2h('Menos de 2 horas'),
   between2and4h('2 a 4 horas'),

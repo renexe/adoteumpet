@@ -8,7 +8,7 @@ abstract final class MockPetsData {
   static List<Pet> get pets => [
         Pet(
           id: 'pet_001',
-          donorId: 'user_donor_001',
+          ownerId: 'user_002',
           name: 'Thor',
           species: PetSpecies.dog,
           breed: 'Labrador',
@@ -34,7 +34,7 @@ abstract final class MockPetsData {
         ),
         Pet(
           id: 'pet_002',
-          donorId: 'user_donor_002',
+          ownerId: 'user_003',
           name: 'Luna',
           species: PetSpecies.cat,
           breed: 'Vira-lata',
@@ -60,7 +60,7 @@ abstract final class MockPetsData {
         ),
         Pet(
           id: 'pet_003',
-          donorId: 'user_donor_001',
+          ownerId: 'user_002',
           name: 'Bob',
           species: PetSpecies.dog,
           breed: 'Beagle',
@@ -86,7 +86,7 @@ abstract final class MockPetsData {
         ),
         Pet(
           id: 'pet_004',
-          donorId: 'user_donor_003',
+          ownerId: 'user_004',
           name: 'Mia',
           species: PetSpecies.cat,
           breed: 'Siamês',
@@ -112,7 +112,7 @@ abstract final class MockPetsData {
         ),
         Pet(
           id: 'pet_005',
-          donorId: 'user_donor_002',
+          ownerId: 'user_003',
           name: 'Rex',
           species: PetSpecies.dog,
           breed: 'Pastor Alemão',
@@ -137,7 +137,7 @@ abstract final class MockPetsData {
         ),
         Pet(
           id: 'pet_006',
-          donorId: 'user_donor_003',
+          ownerId: 'user_004',
           name: 'Mel',
           species: PetSpecies.dog,
           breed: 'Vira-lata',

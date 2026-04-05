@@ -1,10 +1,13 @@
-/// Representa uma conversa entre adotante e doador.
+/// Representa uma conversa entre o interessado em adotar e o responsável pelo animal.
+///
+/// [requesterId] é o usuário que demonstrou interesse no animal.
+/// [ownerId] é o usuário que cadastrou o animal para doação.
 class Chat {
   final String chatId;
-  final String adopterId;
-  final String adopterName;
-  final String donorId;
-  final String donorName;
+  final String requesterId;
+  final String requesterName;
+  final String ownerId;
+  final String ownerName;
   final String petId;
   final String petName;
   final String petPhoto;
@@ -15,10 +18,10 @@ class Chat {
 
   const Chat({
     required this.chatId,
-    required this.adopterId,
-    required this.adopterName,
-    required this.donorId,
-    required this.donorName,
+    required this.requesterId,
+    required this.requesterName,
+    required this.ownerId,
+    required this.ownerName,
     required this.petId,
     required this.petName,
     required this.petPhoto,

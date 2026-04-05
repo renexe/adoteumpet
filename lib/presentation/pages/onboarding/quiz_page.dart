@@ -5,7 +5,6 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_dimensions.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../domain/entities/app_user.dart';
-import '../../../presentation/providers/auth_provider.dart';
 import '../../../config/app_router.dart';
 
 class QuizPage extends ConsumerStatefulWidget {
@@ -70,13 +69,7 @@ class _QuizPageState extends ConsumerState<QuizPage> {
   }
 
   void _finishQuiz() {
-    final answers = QuizAnswers(
-      housing: _housing!,
-      availableTime: _availableTime!,
-      hasChildren: _hasChildren!,
-      hasOtherPets: _hasOtherPets!,
-    );
-    ref.read(authProvider.notifier).saveQuizAnswers(answers);
+    // As respostas serão persistidas no perfil do usuário na integração com Firebase
     context.go(AppRoutes.home);
   }
 
