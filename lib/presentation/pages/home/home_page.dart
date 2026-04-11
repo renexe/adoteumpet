@@ -14,7 +14,8 @@ class HomePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
-    final petsState = ref.watch(petsProvider);
+    final filters = ref.watch(petFeedFilterProvider);
+    final filteredAsync = ref.watch(filteredPetsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -80,7 +81,7 @@ class HomePage extends ConsumerWidget {
           ),
 
           // Filtros ativos
-          if (_hasActiveFilters(petsState))
+          if (filters.hasActiveFilters)
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(
@@ -106,7 +107,7 @@ class HomePage extends ConsumerWidget {
                     const Spacer(),
                     TextButton(
                       onPressed: () =>
-                          ref.read(petsProvider.notifier).clearFilters(),
+                          ref.read(petFeedFilterProvider.notifier).clearFilters(),
                       child: const Text('Limpar'),
                     ),
                   ],
@@ -114,70 +115,83 @@ class HomePage extends ConsumerWidget {
               ),
             ),
 
-          // Loading
-          if (petsState.isLoading)
-            const SliverFillRemaining(
+          // Conteúdo baseado no AsyncValue
+          filteredAsync.when(
+            loading: () => const SliverFillRemaining(
               child: Center(
                 child: CircularProgressIndicator(color: AppColors.primary),
               ),
-            )
-
-          // Lista de pets
-          else if (petsState.filteredPets.isEmpty)
-            SliverFillRemaining(
+            ),
+            error: (e, _) => SliverFillRemaining(
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(
-                      Icons.search_off,
-                      size: 64,
-                      color: AppColors.textHint,
-                    ),
+                    const Icon(Icons.error_outline,
+                        size: 64, color: AppColors.error),
                     const SizedBox(height: AppDimensions.md),
                     Text(
-                      'Nenhum pet encontrado',
-                      style: AppTextStyles.headlineSmall.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                      'Erro ao carregar pets',
+                      style: AppTextStyles.headlineSmall
+                          .copyWith(color: AppColors.textSecondary),
                     ),
                     const SizedBox(height: AppDimensions.sm),
                     Text(
-                      'Tente ajustar os filtros',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.textHint,
-                      ),
+                      e.toString(),
+                      style: AppTextStyles.bodySmall
+                          .copyWith(color: AppColors.textHint),
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),
               ),
-            )
-          else
-            SliverPadding(
-              padding: const EdgeInsets.all(AppDimensions.md),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: AppDimensions.sm,
-                  mainAxisSpacing: AppDimensions.sm,
-                  childAspectRatio: 0.72,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) =>
-                      PetCard(pet: petsState.filteredPets[index]),
-                  childCount: petsState.filteredPets.length,
-                ),
-              ),
             ),
+            data: (pets) => pets.isEmpty
+                ? SliverFillRemaining(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.search_off,
+                              size: 64, color: AppColors.textHint),
+                          const SizedBox(height: AppDimensions.md),
+                          Text(
+                            'Nenhum pet encontrado',
+                            style: AppTextStyles.headlineSmall.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: AppDimensions.sm),
+                          Text(
+                            'Tente ajustar os filtros',
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.textHint,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : SliverPadding(
+                    padding: const EdgeInsets.all(AppDimensions.md),
+                    sliver: SliverGrid(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: AppDimensions.sm,
+                        mainAxisSpacing: AppDimensions.sm,
+                        childAspectRatio: 0.72,
+                      ),
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) => PetCard(pet: pets[index]),
+                        childCount: pets.length,
+                      ),
+                    ),
+                  ),
+          ),
         ],
       ),
     );
-  }
-
-  bool _hasActiveFilters(PetsState state) {
-    return state.speciesFilter != null ||
-        state.sizeFilter != null ||
-        state.genderFilter != null;
   }
 
   void _showFilterSheet(BuildContext context, WidgetRef ref) {
@@ -202,7 +216,7 @@ class _FilterSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef widgetRef) {
-    final petsState = widgetRef.watch(petsProvider);
+    final filters = widgetRef.watch(petFeedFilterProvider);
 
     return Padding(
       padding: const EdgeInsets.all(AppDimensions.screenPaddingLg),
@@ -233,14 +247,14 @@ class _FilterSheet extends ConsumerWidget {
           Wrap(
             spacing: AppDimensions.sm,
             children: PetSpecies.values.map((species) {
-              final isSelected = petsState.speciesFilter == species;
+              final isSelected = filters.species == species;
               return FilterChip(
                 label: Text(species.label),
                 selected: isSelected,
                 onSelected: (selected) {
                   widgetRef
-                      .read(petsProvider.notifier)
-                      .filterBySpecies(selected ? species : null);
+                      .read(petFeedFilterProvider.notifier)
+                      .setSpecies(selected ? species : null);
                 },
                 selectedColor: AppColors.primary.withValues(alpha: 0.2),
                 checkmarkColor: AppColors.primary,
@@ -260,14 +274,14 @@ class _FilterSheet extends ConsumerWidget {
           Wrap(
             spacing: AppDimensions.sm,
             children: PetSize.values.map((size) {
-              final isSelected = petsState.sizeFilter == size;
+              final isSelected = filters.size == size;
               return FilterChip(
                 label: Text(size.label),
                 selected: isSelected,
                 onSelected: (selected) {
                   widgetRef
-                      .read(petsProvider.notifier)
-                      .filterBySize(selected ? size : null);
+                      .read(petFeedFilterProvider.notifier)
+                      .setSize(selected ? size : null);
                 },
                 selectedColor: AppColors.primary.withValues(alpha: 0.2),
                 checkmarkColor: AppColors.primary,
@@ -287,14 +301,14 @@ class _FilterSheet extends ConsumerWidget {
           Wrap(
             spacing: AppDimensions.sm,
             children: PetGender.values.map((gender) {
-              final isSelected = petsState.genderFilter == gender;
+              final isSelected = filters.gender == gender;
               return FilterChip(
                 label: Text(gender.label),
                 selected: isSelected,
                 onSelected: (selected) {
                   widgetRef
-                      .read(petsProvider.notifier)
-                      .filterByGender(selected ? gender : null);
+                      .read(petFeedFilterProvider.notifier)
+                      .setGender(selected ? gender : null);
                 },
                 selectedColor: AppColors.primary.withValues(alpha: 0.2),
                 checkmarkColor: AppColors.primary,
@@ -313,7 +327,9 @@ class _FilterSheet extends ConsumerWidget {
               Expanded(
                 child: OutlinedButton(
                   onPressed: () {
-                    widgetRef.read(petsProvider.notifier).clearFilters();
+                    widgetRef
+                        .read(petFeedFilterProvider.notifier)
+                        .clearFilters();
                     Navigator.pop(context);
                   },
                   child: const Text('Limpar filtros'),

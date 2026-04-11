@@ -15,7 +15,7 @@ class ChatListPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final chats = ref.watch(chatProvider);
+    final chatsAsync = ref.watch(userChatsProvider);
     final user = ref.watch(currentUserProvider);
 
     return Scaffold(
@@ -27,46 +27,54 @@ class ChatListPage extends ConsumerWidget {
           child: Container(height: 1, color: AppColors.divider),
         ),
       ),
-      body: chats.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.chat_bubble_outline,
-                    size: 64,
-                    color: AppColors.textHint,
-                  ),
-                  const SizedBox(height: AppDimensions.md),
-                  Text(
-                    'Nenhuma conversa ainda',
-                    style: AppTextStyles.headlineSmall.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: AppDimensions.sm),
-                  Text(
-                    'Demonstre interesse em um pet para\niniciar uma conversa',
-                    style: AppTextStyles.bodyMedium.copyWith(
+      body: chatsAsync.when(
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+        error: (e, _) => Center(
+          child: Text('Erro ao carregar mensagens: $e'),
+        ),
+        data: (chats) => chats.isEmpty
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.chat_bubble_outline,
+                      size: 64,
                       color: AppColors.textHint,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+                    const SizedBox(height: AppDimensions.md),
+                    Text(
+                      'Nenhuma conversa ainda',
+                      style: AppTextStyles.headlineSmall.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: AppDimensions.sm),
+                    Text(
+                      'Demonstre interesse em um pet para\niniciar uma conversa',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textHint,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              )
+            : ListView.separated(
+                itemCount: chats.length,
+                separatorBuilder: (_, _) =>
+                    const Divider(height: 1, color: AppColors.divider),
+                itemBuilder: (context, index) {
+                  final chat = chats[index];
+                  return _ChatTile(
+                    chat: chat,
+                    currentUserId: user?.uid ?? '',
+                  );
+                },
               ),
-            )
-          : ListView.separated(
-              itemCount: chats.length,
-              separatorBuilder: (_, _) =>
-                  const Divider(height: 1, color: AppColors.divider),
-              itemBuilder: (context, index) {
-                final chat = chats[index];
-                return _ChatTile(
-                  chat: chat,
-                  currentUserId: user?.uid ?? '',
-                );
-              },
-            ),
+      ),
     );
   }
 }

@@ -1,0 +1,66 @@
+// ARQUIVO GERADO AUTOMATICAMENTE — NÃO EDITAR MANUALMENTE
+//
+// INSTRUÇÕES:
+// 1. Instale o FlutterFire CLI:
+//    dart pub global activate flutterfire_cli
+//
+// 2. Faça login no Firebase:
+//    firebase login
+//
+// 3. Configure o projeto (na raiz do repo):
+//    flutterfire configure --project=SEU_PROJECT_ID
+//
+// 4. O arquivo lib/firebase_options.dart será gerado automaticamente
+//    com as credenciais do seu projeto.
+//
+// 5. NUNCA commite o arquivo gerado — ele já está no .gitignore
+//    Use este template apenas como referência de estrutura.
+//
+// Referência: https://firebase.flutter.dev/docs/cli
+
+import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
+
+class DefaultFirebaseOptions {
+  static FirebaseOptions get currentPlatform {
+    if (kIsWeb) return web;
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return android;
+      case TargetPlatform.iOS:
+        return ios;
+      default:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions não suportado para esta plataforma.',
+        );
+    }
+  }
+
+  // Substitua pelos valores reais gerados pelo flutterfire configure
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'SUA_API_KEY_ANDROID',
+    appId: '1:SEU_PROJECT_NUMBER:android:SEU_APP_ID',
+    messagingSenderId: 'SEU_PROJECT_NUMBER',
+    projectId: 'SEU_PROJECT_ID',
+    storageBucket: 'SEU_PROJECT_ID.appspot.com',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'SUA_API_KEY_IOS',
+    appId: '1:SEU_PROJECT_NUMBER:ios:SEU_APP_ID',
+    messagingSenderId: 'SEU_PROJECT_NUMBER',
+    projectId: 'SEU_PROJECT_ID',
+    storageBucket: 'SEU_PROJECT_ID.appspot.com',
+    iosBundleId: 'com.adoteumpet.app',
+  );
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'SUA_API_KEY_WEB',
+    appId: '1:SEU_PROJECT_NUMBER:web:SEU_APP_ID',
+    messagingSenderId: 'SEU_PROJECT_NUMBER',
+    projectId: 'SEU_PROJECT_ID',
+    authDomain: 'SEU_PROJECT_ID.firebaseapp.com',
+    storageBucket: 'SEU_PROJECT_ID.appspot.com',
+  );
+}

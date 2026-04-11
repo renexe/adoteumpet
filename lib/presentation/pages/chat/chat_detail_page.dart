@@ -6,8 +6,10 @@ import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_dimensions.dart';
 import '../../../core/constants/app_text_styles.dart';
+import '../../../domain/entities/chat_message.dart';
 import '../../../presentation/providers/chat_provider.dart';
 import '../../../presentation/providers/auth_provider.dart';
+
 
 class ChatDetailPage extends ConsumerStatefulWidget {
   final String chatId;
@@ -23,26 +25,31 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
   final _scrollController = ScrollController();
 
   @override
+  void initState() {
+    super.initState();
+    // Marca mensagens como lidas ao abrir o chat
+    Future.microtask(
+      () => ref.read(chatWriteProvider.notifier).markAsRead(widget.chatId),
+    );
+  }
+
+  @override
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
-  void _sendMessage() {
+  Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
 
-    final user = ref.read(currentUserProvider);
-    if (user == null) return;
+    _messageController.clear();
 
-    ref.read(chatProvider.notifier).sendMessage(
+    await ref.read(chatWriteProvider.notifier).sendMessage(
           chatId: widget.chatId,
-          senderId: user.uid,
           text: text,
         );
-
-    _messageController.clear();
 
     // Rola para o final após enviar
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -58,16 +65,38 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final chat = ref.watch(chatByIdProvider(widget.chatId));
+    final chatAsync = ref.watch(chatByIdProvider(widget.chatId));
+    final messagesAsync = ref.watch(chatMessagesProvider(widget.chatId));
     final user = ref.watch(currentUserProvider);
 
-    if (chat == null) {
-      return Scaffold(
+    return chatAsync.when(
+      loading: () => const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      ),
+      error: (e, _) => Scaffold(
         appBar: AppBar(),
-        body: const Center(child: Text('Conversa não encontrada')),
-      );
-    }
+        body: const Center(child: Text('Erro ao carregar conversa')),
+      ),
+      data: (chat) {
+        if (chat == null) {
+          return Scaffold(
+            appBar: AppBar(),
+            body: const Center(child: Text('Conversa não encontrada')),
+          );
+        }
+        return _buildScaffold(context, chat, messagesAsync, user?.uid ?? '');
+      },
+    );
+  }
 
+  Widget _buildScaffold(
+    BuildContext context,
+    Chat chat,
+    AsyncValue<List<ChatMessage>> messagesAsync,
+    String currentUserId,
+  ) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -85,7 +114,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                 child: CachedNetworkImage(
                   imageUrl: chat.petPhoto,
                   fit: BoxFit.cover,
-                  errorWidget: (_, _, _) => Container(
+                  errorWidget: (ctx, url, err) => Container(
                     color: AppColors.surfaceVariant,
                     child: const Icon(Icons.pets,
                         color: AppColors.textHint, size: 20),
@@ -104,7 +133,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    user?.uid == chat.requesterId
+                    currentUserId == chat.requesterId
                         ? 'Responsável: ${chat.ownerName}'
                         : 'Interessado: ${chat.requesterName}',
                     style: AppTextStyles.bodySmall,
@@ -122,49 +151,55 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
       ),
       body: Column(
         children: [
-          // Lista de mensagens
+          // Lista de mensagens em tempo real
           Expanded(
-            child: chat.messages.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.chat_bubble_outline,
-                          size: 48,
-                          color: AppColors.textHint,
-                        ),
-                        const SizedBox(height: AppDimensions.md),
-                        Text(
-                          'Inicie a conversa!',
-                          style: AppTextStyles.bodyLarge.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: AppDimensions.xs),
-                        Text(
-                          'Apresente-se e tire suas dúvidas.',
-                          style: AppTextStyles.bodyMedium.copyWith(
+            child: messagesAsync.when(
+              loading: () => const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+              error: (e, _) => Center(child: Text('Erro: $e')),
+              data: (messages) => messages.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.chat_bubble_outline,
+                            size: 48,
                             color: AppColors.textHint,
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: AppDimensions.md),
+                          Text(
+                            'Inicie a conversa!',
+                            style: AppTextStyles.bodyLarge.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: AppDimensions.xs),
+                          Text(
+                            'Apresente-se e tire suas dúvidas.',
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.textHint,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(AppDimensions.md),
+                      itemCount: messages.length,
+                      itemBuilder: (context, index) {
+                        final message = messages[index];
+                        final isMe = message.senderId == currentUserId;
+                        return _MessageBubble(
+                          message: message.text,
+                          timestamp: message.timestamp,
+                          isMe: isMe,
+                        );
+                      },
                     ),
-                  )
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(AppDimensions.md),
-                    itemCount: chat.messages.length,
-                    itemBuilder: (context, index) {
-                      final message = chat.messages[index];
-                      final isMe = message.senderId == user?.uid;
-                      return _MessageBubble(
-                        message: message.text,
-                        timestamp: message.timestamp,
-                        isMe: isMe,
-                      );
-                    },
-                  ),
+            ),
           ),
 
           // Input de mensagem
@@ -200,8 +235,8 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                           vertical: AppDimensions.sm,
                         ),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(
-                              AppDimensions.radiusFull),
+                          borderRadius:
+                              BorderRadius.circular(AppDimensions.radiusFull),
                           borderSide: BorderSide.none,
                         ),
                       ),
@@ -242,31 +277,27 @@ class _MessageBubble extends StatelessWidget {
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: EdgeInsets.only(
-          top: AppDimensions.xs,
-          bottom: AppDimensions.xs,
-          left: isMe ? 60 : 0,
-          right: isMe ? 0 : 60,
+        margin: const EdgeInsets.only(bottom: AppDimensions.sm),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
         padding: const EdgeInsets.symmetric(
           horizontal: AppDimensions.md,
           vertical: AppDimensions.sm,
         ),
         decoration: BoxDecoration(
-          color: isMe
-              ? AppColors.primary.withValues(alpha: 0.15)
-              : AppColors.surface,
+          color: isMe ? AppColors.primary : AppColors.surface,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(AppDimensions.radiusMd),
             topRight: const Radius.circular(AppDimensions.radiusMd),
-            bottomLeft: Radius.circular(isMe ? AppDimensions.radiusMd : 0),
-            bottomRight: Radius.circular(isMe ? 0 : AppDimensions.radiusMd),
+            bottomLeft: Radius.circular(isMe ? AppDimensions.radiusMd : 4),
+            bottomRight: Radius.circular(isMe ? 4 : AppDimensions.radiusMd),
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.shadow,
-              blurRadius: 2,
-              offset: const Offset(0, 1),
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -274,11 +305,21 @@ class _MessageBubble extends StatelessWidget {
           crossAxisAlignment:
               isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
-            Text(message, style: AppTextStyles.bodyMedium),
+            Text(
+              message,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: isMe ? Colors.white : AppColors.textPrimary,
+              ),
+            ),
             const SizedBox(height: 2),
             Text(
               DateFormat('HH:mm').format(timestamp),
-              style: AppTextStyles.caption,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: isMe
+                    ? Colors.white.withValues(alpha: 0.7)
+                    : AppColors.textHint,
+                fontSize: 11,
+              ),
             ),
           ],
         ),

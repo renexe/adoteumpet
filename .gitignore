@@ -43,3 +43,24 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# ── Firebase / Secrets ──────────────────────────────────────────────────────
+# NUNCA commitar estes arquivos — contêm chaves e credenciais sensíveis.
+# Use os arquivos *.template como referência para criar as versões reais.
+
+# Android — gerado pelo Firebase Console
+android/app/google-services.json
+
+# iOS — gerado pelo Firebase Console
+ios/Runner/GoogleService-Info.plist
+
+# Dart-define com variáveis de ambiente (gerado localmente)
+.env
+.env.local
+.env.*.local
+lib/firebase_options.dart
+
+# Keystore Android (nunca commitar)
+*.jks
+*.keystore
+android/key.properties

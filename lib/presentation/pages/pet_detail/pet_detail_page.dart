@@ -28,16 +28,34 @@ class _PetDetailPageState extends ConsumerState<PetDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final pet = ref.watch(petByIdProvider(widget.petId));
-    final isFavorite = ref.watch(favoritesProvider).contains(widget.petId);
+    final petAsync = ref.watch(petByIdProvider(widget.petId));
+    final isFavorite = ref.watch(isFavoriteProvider(widget.petId));
     final user = ref.watch(currentUserProvider);
 
-    if (pet == null) {
-      return Scaffold(
+    return petAsync.when(
+      loading: () => const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      ),
+      error: (e, _) => Scaffold(
         appBar: AppBar(),
-        body: const Center(child: Text('Pet não encontrado')),
-      );
-    }
+        body: const Center(child: Text('Erro ao carregar pet')),
+      ),
+      data: (pet) {
+        if (pet == null) {
+          return Scaffold(
+            appBar: AppBar(),
+            body: const Center(child: Text('Pet não encontrado')),
+          );
+        }
+        return _buildContent(context, pet, isFavorite, user);
+      },
+    );
+  }
+
+  Widget _buildContent(
+      BuildContext context, Pet pet, bool isFavorite, AppUser? user) {
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -70,7 +88,7 @@ class _PetDetailPageState extends ConsumerState<PetDetailPage> {
                     ),
                     onPressed: () => ref
                         .read(favoritesProvider.notifier)
-                        .toggleFavorite(pet.id),
+                        .toggle(pet.id),
                   ),
                 ),
               ),
@@ -315,9 +333,7 @@ class _PetDetailPageState extends ConsumerState<PetDetailPage> {
           ),
           ElevatedButton(
             onPressed: () {
-              ref.read(chatProvider.notifier).createChat(
-                    requesterId: appUser.uid,
-                    requesterName: appUser.displayName,
+              ref.read(chatWriteProvider.notifier).createChat(
                     ownerId: pet.ownerId,
                     ownerName: 'Responsável',
                     petId: pet.id,

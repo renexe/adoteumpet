@@ -43,6 +43,15 @@ dependencies:
   cached_network_image: ^3.4.1
   shimmer: ^3.0.0
 
+  # Firebase
+  firebase_core: ^3.13.0
+  firebase_auth: ^5.5.2
+  cloud_firestore: ^5.6.6
+  firebase_storage: ^12.4.5
+
+  # Upload de imagem
+  image_picker: ^1.1.2
+
   # Utilitários
   intl: ^0.20.2
   uuid: ^4.5.1

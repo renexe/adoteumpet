@@ -1,122 +1,159 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/pet.dart';
-import '../../data/datasources/mock/mock_pets_data.dart';
+import 'auth_provider.dart';
+import 'firebase_providers.dart';
 
-/// Estado do feed de animais.
-class PetsState {
-  final List<Pet> pets;
-  final bool isLoading;
-  final String? error;
-  final PetSpecies? speciesFilter;
-  final PetSize? sizeFilter;
-  final PetGender? genderFilter;
+// ── Streams de pets ────────────────────────────────────────────────────────────
 
-  const PetsState({
-    this.pets = const [],
-    this.isLoading = false,
-    this.error,
-    this.speciesFilter,
-    this.sizeFilter,
-    this.genderFilter,
+/// Stream de todos os pets disponíveis (feed principal).
+final availablePetsProvider = StreamProvider<List<Pet>>((ref) {
+  return ref.watch(petRepositoryProvider).watchAvailablePets();
+});
+
+/// Stream dos pets do usuário autenticado (Meus Pets).
+final myPetsProvider = StreamProvider<List<Pet>>((ref) {
+  final uid = ref.watch(currentUserProvider)?.uid;
+  if (uid == null) return const Stream.empty();
+  return ref.watch(petRepositoryProvider).watchPetsByOwner(uid);
+});
+
+// ── Estado do feed com filtros ─────────────────────────────────────────────────
+
+/// Estado dos filtros ativos no feed.
+class PetFeedState {
+  final PetSpecies? species;
+  final PetSize? size;
+  final PetGender? gender;
+  final String searchQuery;
+
+  const PetFeedState({
+    this.species,
+    this.size,
+    this.gender,
+    this.searchQuery = '',
   });
 
-  List<Pet> get filteredPets {
-    return pets.where((pet) {
-      if (speciesFilter != null && pet.species != speciesFilter) return false;
-      if (sizeFilter != null && pet.size != sizeFilter) return false;
-      if (genderFilter != null && pet.gender != genderFilter) return false;
-      return pet.status == PetStatus.available;
-    }).toList();
-  }
+  bool get hasActiveFilters =>
+      species != null ||
+      size != null ||
+      gender != null ||
+      searchQuery.isNotEmpty;
 
-  PetsState copyWith({
-    List<Pet>? pets,
-    bool? isLoading,
-    String? error,
-    PetSpecies? speciesFilter,
-    PetSize? sizeFilter,
-    PetGender? genderFilter,
-    bool clearSpeciesFilter = false,
-    bool clearSizeFilter = false,
-    bool clearGenderFilter = false,
+  PetFeedState copyWith({
+    PetSpecies? species,
+    PetSize? size,
+    PetGender? gender,
+    String? searchQuery,
+    bool clearSpecies = false,
+    bool clearSize = false,
+    bool clearGender = false,
   }) {
-    return PetsState(
-      pets: pets ?? this.pets,
-      isLoading: isLoading ?? this.isLoading,
-      error: error ?? this.error,
-      speciesFilter:
-          clearSpeciesFilter ? null : speciesFilter ?? this.speciesFilter,
-      sizeFilter: clearSizeFilter ? null : sizeFilter ?? this.sizeFilter,
-      genderFilter:
-          clearGenderFilter ? null : genderFilter ?? this.genderFilter,
+    return PetFeedState(
+      species: clearSpecies ? null : species ?? this.species,
+      size: clearSize ? null : size ?? this.size,
+      gender: clearGender ? null : gender ?? this.gender,
+      searchQuery: searchQuery ?? this.searchQuery,
     );
   }
 }
 
-/// Notifier responsável pelo gerenciamento do feed de animais.
-class PetsNotifier extends Notifier<PetsState> {
+/// Notifier dos filtros do feed.
+class PetFeedNotifier extends Notifier<PetFeedState> {
   @override
-  PetsState build() {
-    // Carrega os pets assim que o provider é criado
-    Future.microtask(loadPets);
-    return const PetsState();
-  }
+  PetFeedState build() => const PetFeedState();
 
-  /// Carrega a lista de animais disponíveis.
-  Future<void> loadPets() async {
-    state = state.copyWith(isLoading: true);
-    await Future.delayed(const Duration(milliseconds: 600));
-    state = state.copyWith(pets: MockPetsData.pets, isLoading: false);
-  }
+  void setSpecies(PetSpecies? species) =>
+      state = state.copyWith(species: species, clearSpecies: species == null);
 
-  /// Aplica filtro por espécie.
-  void filterBySpecies(PetSpecies? species) {
-    if (species == null) {
-      state = state.copyWith(clearSpeciesFilter: true);
-    } else {
-      state = state.copyWith(speciesFilter: species);
+  void setSize(PetSize? size) =>
+      state = state.copyWith(size: size, clearSize: size == null);
+
+  void setGender(PetGender? gender) =>
+      state = state.copyWith(gender: gender, clearGender: gender == null);
+
+  void setSearchQuery(String query) =>
+      state = state.copyWith(searchQuery: query);
+
+  void clearFilters() => state = const PetFeedState();
+}
+
+/// Provider dos filtros do feed.
+final petFeedFilterProvider =
+    NotifierProvider<PetFeedNotifier, PetFeedState>(PetFeedNotifier.new);
+
+/// Provider dos pets filtrados para exibição no feed.
+final filteredPetsProvider = Provider<AsyncValue<List<Pet>>>((ref) {
+  final petsAsync = ref.watch(availablePetsProvider);
+  final filters = ref.watch(petFeedFilterProvider);
+
+  return petsAsync.whenData((pets) {
+    return pets.where((pet) {
+      if (filters.species != null && pet.species != filters.species) {
+        return false;
+      }
+      if (filters.size != null && pet.size != filters.size) return false;
+      if (filters.gender != null && pet.gender != filters.gender) return false;
+      if (filters.searchQuery.isNotEmpty) {
+        final q = filters.searchQuery.toLowerCase();
+        if (!pet.name.toLowerCase().contains(q) &&
+            !pet.breed.toLowerCase().contains(q) &&
+            !pet.city.toLowerCase().contains(q)) {
+          return false;
+        }
+      }
+      return true;
+    }).toList();
+  });
+});
+
+/// Provider para buscar um pet específico por ID via Firestore.
+final petByIdProvider = FutureProvider.family<Pet?, String>((ref, petId) {
+  return ref.watch(petRepositoryProvider).fetchPet(petId);
+});
+
+// ── Operações de escrita ───────────────────────────────────────────────────────
+
+/// Notifier para operações de criação/edição de pets.
+class PetWriteNotifier extends Notifier<AsyncValue<void>> {
+  @override
+  AsyncValue<void> build() => const AsyncValue.data(null);
+
+  /// Cadastra um novo pet no Firestore.
+  Future<String?> createPet(Pet pet) async {
+    state = const AsyncValue.loading();
+    try {
+      final id = await ref.read(petRepositoryProvider).createPet(pet);
+      state = const AsyncValue.data(null);
+      return id;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
     }
   }
 
-  /// Aplica filtro por porte.
-  void filterBySize(PetSize? size) {
-    if (size == null) {
-      state = state.copyWith(clearSizeFilter: true);
-    } else {
-      state = state.copyWith(sizeFilter: size);
+  /// Atualiza o status de um pet.
+  Future<void> updateStatus(String petId, PetStatus status) async {
+    state = const AsyncValue.loading();
+    try {
+      await ref.read(petRepositoryProvider).updateStatus(petId, status);
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
     }
   }
 
-  /// Aplica filtro por gênero.
-  void filterByGender(PetGender? gender) {
-    if (gender == null) {
-      state = state.copyWith(clearGenderFilter: true);
-    } else {
-      state = state.copyWith(genderFilter: gender);
+  /// Remove um pet.
+  Future<void> deletePet(String petId) async {
+    state = const AsyncValue.loading();
+    try {
+      await ref.read(petRepositoryProvider).deletePet(petId);
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
     }
-  }
-
-  /// Remove todos os filtros ativos.
-  void clearFilters() {
-    state = state.copyWith(
-      clearSpeciesFilter: true,
-      clearSizeFilter: true,
-      clearGenderFilter: true,
-    );
   }
 }
 
-/// Provider global de pets.
-final petsProvider = NotifierProvider<PetsNotifier, PetsState>(
-  PetsNotifier.new,
-);
-
-/// Provider para um pet específico por ID.
-final petByIdProvider = Provider.family<Pet?, String>((ref, petId) {
-  final pets = ref.watch(petsProvider).pets;
-  try {
-    return pets.firstWhere((p) => p.id == petId);
-  } catch (_) {
-    return null;
-  }
-});
+/// Provider de operações de escrita em pets.
+final petWriteProvider =
+    NotifierProvider<PetWriteNotifier, AsyncValue<void>>(PetWriteNotifier.new);

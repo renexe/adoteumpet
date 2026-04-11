@@ -1,0 +1,37 @@
+{
+  "_INSTRUCOES": [
+    "1. Acesse https://console.firebase.google.com",
+    "2. Crie ou selecione o projeto 'adote-um-pet'",
+    "3. Adicione um app Android com package name: com.adoteumpet.app",
+    "4. Baixe o arquivo google-services.json gerado",
+    "5. Copie-o para android/app/google-services.json",
+    "6. NUNCA commite o arquivo real — ele já está no .gitignore"
+  ],
+  "project_info": {
+    "project_number": "SEU_PROJECT_NUMBER",
+    "project_id": "SEU_PROJECT_ID",
+    "storage_bucket": "SEU_PROJECT_ID.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:SEU_PROJECT_NUMBER:android:SEU_APP_ID",
+        "android_client_info": {
+          "package_name": "com.adoteumpet.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "SUA_API_KEY_ANDROID"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
