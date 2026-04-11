@@ -1,99 +1,133 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/chat_message.dart';
-import '../../data/datasources/mock/mock_user_data.dart';
+import 'auth_provider.dart';
+import 'firebase_providers.dart';
 
-/// Gerencia o estado das conversas do usuário.
-class ChatNotifier extends Notifier<List<Chat>> {
-  @override
-  List<Chat> build() {
-    // Carrega os chats mock assim que o provider é criado
-    Future.microtask(_loadChats);
-    return [];
-  }
+// ── Streams ────────────────────────────────────────────────────────────────────
 
-  Future<void> _loadChats() async {
-    await Future.delayed(const Duration(milliseconds: 400));
-    state = MockUserData.chats;
-  }
+/// Stream de todos os chats do usuário autenticado.
+final userChatsProvider = StreamProvider<List<Chat>>((ref) {
+  final uid = ref.watch(currentUserProvider)?.uid;
+  if (uid == null) return const Stream.empty();
+  return ref.watch(chatRepositoryProvider).watchChatsForUser(uid);
+});
 
-  /// Envia uma nova mensagem em um chat existente.
-  void sendMessage({
-    required String chatId,
-    required String senderId,
-    required String text,
+/// Stream das mensagens de um chat específico.
+final chatMessagesProvider =
+    StreamProvider.family<List<ChatMessage>, String>((ref, chatId) {
+  return ref.watch(chatRepositoryProvider).watchMessages(chatId);
+});
+
+// ── Operações de escrita ───────────────────────────────────────────────────────
+
+/// Estado das operações de chat.
+class ChatWriteState {
+  final bool isLoading;
+  final String? error;
+  final String? createdChatId;
+
+  const ChatWriteState({
+    this.isLoading = false,
+    this.error,
+    this.createdChatId,
+  });
+
+  ChatWriteState copyWith({
+    bool? isLoading,
+    String? error,
+    String? createdChatId,
+    bool clearError = false,
   }) {
-    final newMessage = ChatMessage(
-      messageId: 'msg_${DateTime.now().millisecondsSinceEpoch}',
-      senderId: senderId,
-      text: text,
-      timestamp: DateTime.now(),
-      read: false,
+    return ChatWriteState(
+      isLoading: isLoading ?? this.isLoading,
+      error: clearError ? null : error ?? this.error,
+      createdChatId: createdChatId ?? this.createdChatId,
     );
-
-    state = state.map((chat) {
-      if (chat.chatId != chatId) return chat;
-      return Chat(
-        chatId: chat.chatId,
-        requesterId: chat.requesterId,
-        requesterName: chat.requesterName,
-        ownerId: chat.ownerId,
-        ownerName: chat.ownerName,
-        petId: chat.petId,
-        petName: chat.petName,
-        petPhoto: chat.petPhoto,
-        messages: [...chat.messages, newMessage],
-        lastMessage: text,
-        lastMessageTime: newMessage.timestamp,
-        createdAt: chat.createdAt,
-      );
-    }).toList();
   }
+}
 
-  /// Cria um novo chat ao demonstrar interesse em um animal.
-  void createChat({
-    required String requesterId,
-    required String requesterName,
+/// Notifier para operações de envio de mensagens e criação de chats.
+class ChatWriteNotifier extends Notifier<ChatWriteState> {
+  @override
+  ChatWriteState build() => const ChatWriteState();
+
+  /// Cria um novo chat ou retorna o ID de um existente.
+  Future<String?> createChat({
     required String ownerId,
     required String ownerName,
     required String petId,
     required String petName,
     required String petPhoto,
-  }) {
-    // Verifica se já existe um chat para este pet com este interessado
-    final exists =
-        state.any((c) => c.petId == petId && c.requesterId == requesterId);
-    if (exists) return;
+  }) async {
+    final currentUser = ref.read(currentUserProvider);
+    if (currentUser == null) return null;
 
-    final newChat = Chat(
-      chatId: 'chat_${DateTime.now().millisecondsSinceEpoch}',
-      requesterId: requesterId,
-      requesterName: requesterName,
-      ownerId: ownerId,
-      ownerName: ownerName,
-      petId: petId,
-      petName: petName,
-      petPhoto: petPhoto,
-      messages: [],
-      lastMessage: 'Conversa iniciada',
-      lastMessageTime: DateTime.now(),
-      createdAt: DateTime.now(),
-    );
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final chatId = await ref.read(chatRepositoryProvider).createChat(
+            requesterId: currentUser.uid,
+            requesterName: currentUser.displayName,
+            ownerId: ownerId,
+            ownerName: ownerName,
+            petId: petId,
+            petName: petName,
+            petPhoto: petPhoto,
+          );
+      state = state.copyWith(isLoading: false, createdChatId: chatId);
+      return chatId;
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Erro ao iniciar conversa.',
+      );
+      return null;
+    }
+  }
 
-    state = [...state, newChat];
+  /// Envia uma mensagem em um chat existente.
+  Future<void> sendMessage({
+    required String chatId,
+    required String text,
+  }) async {
+    final currentUser = ref.read(currentUserProvider);
+    if (currentUser == null || text.trim().isEmpty) return;
+
+    try {
+      await ref.read(chatRepositoryProvider).sendMessage(
+            chatId: chatId,
+            senderId: currentUser.uid,
+            text: text,
+          );
+    } catch (e) {
+      state = state.copyWith(error: 'Erro ao enviar mensagem.');
+    }
+  }
+
+  /// Marca mensagens como lidas ao abrir um chat.
+  Future<void> markAsRead(String chatId) async {
+    final currentUser = ref.read(currentUserProvider);
+    if (currentUser == null) return;
+
+    try {
+      await ref.read(chatRepositoryProvider).markMessagesAsRead(
+            chatId: chatId,
+            currentUserId: currentUser.uid,
+          );
+    } catch (_) {
+      // Silencioso — não bloqueia a UX
+    }
   }
 }
 
-/// Provider global de chats.
-final chatProvider = NotifierProvider<ChatNotifier, List<Chat>>(
-  ChatNotifier.new,
-);
+/// Provider de operações de chat.
+final chatWriteProvider =
+    NotifierProvider<ChatWriteNotifier, ChatWriteState>(ChatWriteNotifier.new);
 
-/// Provider para um chat específico por ID.
-final chatByIdProvider = Provider.family<Chat?, String>((ref, chatId) {
-  final chats = ref.watch(chatProvider);
-  try {
-    return chats.firstWhere((c) => c.chatId == chatId);
-  } catch (_) {
-    return null;
-  }
+/// Stream de um chat específico por ID.
+final chatByIdProvider =
+    StreamProvider.family<Chat?, String>((ref, chatId) {
+  return ref
+      .watch(chatRepositoryProvider)
+      .fetchChat(chatId)
+      .asStream();
 });
