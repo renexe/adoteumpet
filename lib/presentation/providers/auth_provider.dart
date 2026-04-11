@@ -1,6 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../domain/entities/app_user.dart';
+import '../../core/errors/app_exception.dart';
 import '../../data/datasources/mock/mock_user_data.dart';
+import '../../domain/entities/app_user.dart';
+import 'firebase_providers.dart';
 
 /// Estado de autenticação do aplicativo.
 class AuthState {
@@ -33,46 +36,99 @@ class AuthState {
 
 /// Notifier responsável pelo gerenciamento do estado de autenticação.
 ///
-/// Na versão MVP sem Firebase, simula o fluxo de autenticação
-/// com dados mock. A integração real será adicionada na próxima fase.
+/// Usa Firebase Auth quando disponível. O fluxo de autenticação é:
+/// 1. [signInWithEmail] / [signUpWithEmail] → Firebase Auth
+/// 2. Após autenticação, busca/cria o perfil no Firestore via [UserRepository]
+/// 3. O estado [AuthState.user] é atualizado com o [AppUser] completo
 class AuthNotifier extends Notifier<AuthState> {
   @override
-  AuthState build() => const AuthState();
+  AuthState build() {
+    // Escuta mudanças de autenticação do Firebase em tempo real
+    ref.listen(firebaseAuthStateProvider, (_, next) {
+      next.whenData((fbUser) async {
+        if (fbUser == null) {
+          state = const AuthState();
+          return;
+        }
+        await _loadUserProfile(fbUser);
+      });
+    });
+    return const AuthState();
+  }
 
-  /// Simula login com e-mail e senha.
+  /// Carrega o perfil completo do Firestore após autenticação.
+  Future<void> _loadUserProfile(fb.User fbUser) async {
+    try {
+      final repo = ref.read(userRepositoryProvider);
+      var appUser = await repo.fetchUser(fbUser.uid);
+
+      if (appUser == null) {
+        // Primeira vez — cria o perfil com dados do Firebase Auth
+        appUser = AppUser(
+          uid: fbUser.uid,
+          email: fbUser.email ?? '',
+          displayName: fbUser.displayName ?? 'Usuário',
+          profilePicture: fbUser.photoURL,
+          createdAt: DateTime.now(),
+        );
+        await repo.saveUser(appUser);
+      }
+
+      state = state.copyWith(user: appUser, isLoading: false);
+    } catch (e) {
+      state = state.copyWith(
+        error: 'Erro ao carregar perfil.',
+        isLoading: false,
+      );
+    }
+  }
+
+  /// Faz login com e-mail e senha via Firebase Auth.
   Future<void> signInWithEmail({
     required String email,
     required String password,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
-
-    // Simula delay de rede
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    // Mock: qualquer credencial é aceita
-    state = state.copyWith(user: MockUserData.mockUser, isLoading: false);
+    try {
+      final authService = ref.read(authServiceProvider);
+      await authService.signInWithEmail(email: email, password: password);
+      // O listener firebaseAuthStateProvider cuida do restante
+    } on AuthException catch (e) {
+      state = state.copyWith(isLoading: false, error: e.message);
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Erro inesperado. Tente novamente.',
+      );
+    }
   }
 
-  /// Simula cadastro de novo usuário.
+  /// Cria uma nova conta via Firebase Auth.
   Future<void> signUpWithEmail({
     required String name,
     required String email,
     required String password,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
-
-    await Future.delayed(const Duration(milliseconds: 1000));
-
-    final user = AppUser(
-      uid: 'new_user_${DateTime.now().millisecondsSinceEpoch}',
-      email: email,
-      displayName: name,
-      createdAt: DateTime.now(),
-    );
-    state = state.copyWith(user: user, isLoading: false);
+    try {
+      final authService = ref.read(authServiceProvider);
+      await authService.createUserWithEmail(
+        email: email,
+        password: password,
+        displayName: name,
+      );
+      // O listener firebaseAuthStateProvider cuida do restante
+    } on AuthException catch (e) {
+      state = state.copyWith(isLoading: false, error: e.message);
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Erro inesperado. Tente novamente.',
+      );
+    }
   }
 
-  /// Atualiza o perfil do usuário autenticado.
+  /// Atualiza o perfil do usuário autenticado no Firestore.
   Future<void> updateProfile({
     String? displayName,
     String? bio,
@@ -85,23 +141,29 @@ class AuthNotifier extends Notifier<AuthState> {
     if (current == null) return;
 
     state = state.copyWith(isLoading: true, clearError: true);
-    await Future.delayed(const Duration(milliseconds: 600));
-
-    final updated = current.copyWith(
-      displayName: displayName,
-      bio: bio,
-      profilePicture: profilePicture,
-      location: location,
-      contact: contact,
-      privacy: privacy,
-    );
-    state = state.copyWith(user: updated, isLoading: false);
+    try {
+      final updated = current.copyWith(
+        displayName: displayName,
+        bio: bio,
+        profilePicture: profilePicture,
+        location: location,
+        contact: contact,
+        privacy: privacy,
+      );
+      await ref.read(userRepositoryProvider).saveUser(updated);
+      state = state.copyWith(user: updated, isLoading: false);
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Erro ao salvar perfil.',
+      );
+    }
   }
 
-  /// Realiza o logout do usuário.
+  /// Realiza o logout.
   Future<void> signOut() async {
     state = state.copyWith(isLoading: true);
-    await Future.delayed(const Duration(milliseconds: 300));
+    await ref.read(authServiceProvider).signOut();
     state = const AuthState();
   }
 }
@@ -115,3 +177,13 @@ final authProvider = NotifierProvider<AuthNotifier, AuthState>(
 final currentUserProvider = Provider<AppUser?>(
   (ref) => ref.watch(authProvider).user,
 );
+
+/// Provider que escuta o stream do Firebase Auth.
+///
+/// Usado internamente pelo [AuthNotifier] para reagir a mudanças de sessão.
+final firebaseAuthStateProvider = StreamProvider<fb.User?>(
+  (ref) => ref.watch(firebaseAuthProvider).authStateChanges(),
+);
+
+/// Provider de dados mock — usado apenas em testes e desenvolvimento sem Firebase.
+final mockUserProvider = Provider<AppUser>((_) => MockUserData.mockUser);

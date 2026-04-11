@@ -76,18 +76,41 @@ class Pet {
 }
 
 /// Informações de saúde do animal.
+///
+/// Os campos [vaccinated], [neutered] e [dewormed] são nulos quando
+/// o responsável não sabe informar (opção "Não sei" na UI).
 class PetHealthInfo {
-  final bool vaccinated;
-  final bool neutered;
-  final bool dewormed;
+  /// true = sim, false = não, null = não sei
+  final bool? vaccinated;
+
+  /// true = sim, false = não, null = não sei
+  final bool? neutered;
+
+  /// true = sim, false = não, null = não sei
+  final bool? dewormed;
+
   final List<String> specialNeeds;
 
   const PetHealthInfo({
-    required this.vaccinated,
-    required this.neutered,
-    required this.dewormed,
+    this.vaccinated,
+    this.neutered,
+    this.dewormed,
     this.specialNeeds = const [],
   });
+
+  PetHealthInfo copyWith({
+    bool? vaccinated,
+    bool? neutered,
+    bool? dewormed,
+    List<String>? specialNeeds,
+  }) {
+    return PetHealthInfo(
+      vaccinated: vaccinated ?? this.vaccinated,
+      neutered: neutered ?? this.neutered,
+      dewormed: dewormed ?? this.dewormed,
+      specialNeeds: specialNeeds ?? this.specialNeeds,
+    );
+  }
 }
 
 enum PetSpecies {

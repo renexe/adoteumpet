@@ -15,7 +15,7 @@ class ProfilePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
-    final favoritePets = ref.watch(favoritePetsProvider);
+    final favoritePetsAsync = ref.watch(favoritePetsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -208,7 +208,7 @@ class ProfilePage extends ConsumerWidget {
                   Text('Favoritos', style: AppTextStyles.titleLarge),
                   const Spacer(),
                   Text(
-                    '${favoritePets.length} pets',
+                    '${switch (favoritePetsAsync) { AsyncData(:final value) => value.length, _ => 0 }} pets',
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: AppColors.textSecondary,
                     ),
@@ -217,52 +217,60 @@ class ProfilePage extends ConsumerWidget {
               ),
             ),
 
-            if (favoritePets.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(AppDimensions.xl),
-                child: Column(
-                  children: [
-                    const Icon(
-                      Icons.favorite_border,
-                      size: 48,
-                      color: AppColors.textHint,
-                    ),
-                    const SizedBox(height: AppDimensions.md),
-                    Text(
-                      'Nenhum favorito ainda',
-                      style: AppTextStyles.bodyLarge.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: AppDimensions.xs),
-                    Text(
-                      'Toque no coração de um pet para salvá-lo aqui.',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.textHint,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.all(AppDimensions.md),
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: AppDimensions.sm,
-                    mainAxisSpacing: AppDimensions.sm,
-                    childAspectRatio: 0.72,
-                  ),
-                  itemCount: favoritePets.length,
-                  itemBuilder: (context, index) =>
-                      PetCard(pet: favoritePets[index]),
+            favoritePetsAsync.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.all(AppDimensions.xl),
+                child: Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
                 ),
               ),
+              error: (e, _) => const SizedBox.shrink(),
+              data: (favoritePets) => favoritePets.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.all(AppDimensions.xl),
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.favorite_border,
+                            size: 48,
+                            color: AppColors.textHint,
+                          ),
+                          const SizedBox(height: AppDimensions.md),
+                          Text(
+                            'Nenhum favorito ainda',
+                            style: AppTextStyles.bodyLarge.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: AppDimensions.xs),
+                          Text(
+                            'Toque no coração de um pet para salvá-lo aqui.',
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.textHint,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.all(AppDimensions.md),
+                      child: GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: AppDimensions.sm,
+                          mainAxisSpacing: AppDimensions.sm,
+                          childAspectRatio: 0.72,
+                        ),
+                        itemCount: favoritePets.length,
+                        itemBuilder: (context, index) =>
+                            PetCard(pet: favoritePets[index]),
+                      ),
+                    ),
+            ),
 
             const SizedBox(height: AppDimensions.xl),
           ],

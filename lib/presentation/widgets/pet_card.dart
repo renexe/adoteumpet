@@ -88,7 +88,7 @@ class PetCard extends ConsumerWidget {
                   child: GestureDetector(
                     onTap: () => ref
                         .read(favoritesProvider.notifier)
-                        .toggleFavorite(pet.id),
+                        .toggle(pet.id),
                     child: Container(
                       padding: const EdgeInsets.all(AppDimensions.xs + 2),
                       decoration: BoxDecoration(

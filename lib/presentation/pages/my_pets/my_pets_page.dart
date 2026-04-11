@@ -5,7 +5,6 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_dimensions.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../domain/entities/pet.dart';
-import '../../../presentation/providers/auth_provider.dart';
 import '../../../presentation/providers/pets_provider.dart';
 import '../../../config/app_router.dart';
 
@@ -14,9 +13,7 @@ class MyPetsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(currentUserProvider);
-    final allPets = ref.watch(petsProvider).pets;
-    final myPets = allPets.where((p) => p.ownerId == user?.uid).toList();
+    final myPetsAsync = ref.watch(myPetsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -36,53 +33,61 @@ class MyPetsPage extends ConsumerWidget {
           style: AppTextStyles.labelLarge.copyWith(color: Colors.white),
         ),
       ),
-      body: myPets.isEmpty
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(AppDimensions.xl),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.pets,
-                      size: 72,
-                      color: AppColors.textHint,
-                    ),
-                    const SizedBox(height: AppDimensions.md),
-                    Text(
-                      'Nenhum pet cadastrado',
-                      style: AppTextStyles.headlineSmall.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: AppDimensions.sm),
-                    Text(
-                      'Cadastre um pet para colocá-lo\ndisponível para adoção.',
-                      style: AppTextStyles.bodyMedium.copyWith(
+      body: myPetsAsync.when(
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+        error: (e, _) => Center(
+          child: Text('Erro ao carregar pets: $e'),
+        ),
+        data: (myPets) => myPets.isEmpty
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppDimensions.xl),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.pets,
+                        size: 72,
                         color: AppColors.textHint,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppDimensions.xl),
-                    ElevatedButton.icon(
-                      onPressed: () => context.push(AppRoutes.addPet),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Cadastrar meu primeiro pet'),
-                    ),
-                  ],
+                      const SizedBox(height: AppDimensions.md),
+                      Text(
+                        'Nenhum pet cadastrado',
+                        style: AppTextStyles.headlineSmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: AppDimensions.sm),
+                      Text(
+                        'Cadastre um pet para colocá-lo\ndisponível para adoção.',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.textHint,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: AppDimensions.xl),
+                      ElevatedButton.icon(
+                        onPressed: () => context.push(AppRoutes.addPet),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Cadastrar meu primeiro pet'),
+                      ),
+                    ],
+                  ),
                 ),
+              )
+            : ListView.separated(
+                padding: const EdgeInsets.all(AppDimensions.md),
+                itemCount: myPets.length,
+                separatorBuilder: (_, _) =>
+                    const SizedBox(height: AppDimensions.sm),
+                itemBuilder: (context, index) {
+                  final pet = myPets[index];
+                  return _OwnerPetCard(pet: pet);
+                },
               ),
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.all(AppDimensions.md),
-              itemCount: myPets.length,
-              separatorBuilder: (_, _) =>
-                  const SizedBox(height: AppDimensions.sm),
-              itemBuilder: (context, index) {
-                final pet = myPets[index];
-                return _OwnerPetCard(pet: pet);
-              },
-            ),
+      ),
     );
   }
 }
