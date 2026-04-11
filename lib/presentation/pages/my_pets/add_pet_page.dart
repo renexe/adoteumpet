@@ -6,6 +6,12 @@ import '../../../core/constants/app_dimensions.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../domain/entities/pet.dart';
+import '../../../presentation/providers/auth_provider.dart';
+
+/// Representa o estado tristate de uma informação de saúde do pet.
+///
+/// [yes] = confirmado, [no] = não tem, [unknown] = não sei informar.
+enum HealthStatus { yes, no, unknown }
 
 class AddPetPage extends ConsumerStatefulWidget {
   const AddPetPage({super.key});
@@ -26,10 +32,31 @@ class _AddPetPageState extends ConsumerState<AddPetPage> {
   PetGender _gender = PetGender.male;
   PetSize _size = PetSize.medium;
   PetEnergyLevel _energyLevel = PetEnergyLevel.medium;
-  bool _vaccinated = false;
-  bool _neutered = false;
-  bool _dewormed = false;
+
+  // Saúde com tristate: Sim / Não / Não sei
+  HealthStatus _vaccinated = HealthStatus.unknown;
+  HealthStatus _neutered = HealthStatus.unknown;
+  HealthStatus _dewormed = HealthStatus.unknown;
+
+  // Localização
+  bool _useMyLocation = true;
   bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pré-preenche com a cidade do perfil se disponível
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncLocationFromProfile();
+    });
+  }
+
+  void _syncLocationFromProfile() {
+    if (!_useMyLocation) return;
+    final user = ref.read(currentUserProvider);
+    final city = user?.location?.city ?? '';
+    _cityController.text = city;
+  }
 
   @override
   void dispose() {
@@ -45,7 +72,6 @@ class _AddPetPageState extends ConsumerState<AddPetPage> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSubmitting = true);
 
-    // Simula envio
     await Future.delayed(const Duration(milliseconds: 800));
 
     if (mounted) {
@@ -69,6 +95,9 @@ class _AddPetPageState extends ConsumerState<AddPetPage> {
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(currentUserProvider);
+    final profileCity = user?.location?.city ?? '';
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -98,9 +127,7 @@ class _AddPetPageState extends ConsumerState<AddPetPage> {
                     color: AppColors.surfaceVariant,
                     borderRadius:
                         BorderRadius.circular(AppDimensions.radiusXl),
-                    border: Border.all(
-                        color: AppColors.border,
-                        style: BorderStyle.solid),
+                    border: Border.all(color: AppColors.border),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -113,9 +140,8 @@ class _AddPetPageState extends ConsumerState<AddPetPage> {
                       const SizedBox(height: AppDimensions.xs),
                       Text(
                         'Adicionar foto',
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.textHint,
-                        ),
+                        style: AppTextStyles.bodySmall
+                            .copyWith(color: AppColors.textHint),
                       ),
                     ],
                   ),
@@ -123,7 +149,7 @@ class _AddPetPageState extends ConsumerState<AddPetPage> {
               ),
               const SizedBox(height: AppDimensions.xl),
 
-              // Informações básicas
+              // ── Informações Básicas ──────────────────────────────────
               Text('Informações Básicas', style: AppTextStyles.titleLarge),
               const SizedBox(height: AppDimensions.md),
 
@@ -136,7 +162,6 @@ class _AddPetPageState extends ConsumerState<AddPetPage> {
               ),
               const SizedBox(height: AppDimensions.md),
 
-              // Espécie
               Text('Espécie', style: AppTextStyles.labelLarge),
               const SizedBox(height: AppDimensions.sm),
               _SegmentedSelector<PetSpecies>(
@@ -165,7 +190,6 @@ class _AddPetPageState extends ConsumerState<AddPetPage> {
               ),
               const SizedBox(height: AppDimensions.md),
 
-              // Sexo
               Text('Sexo', style: AppTextStyles.labelLarge),
               const SizedBox(height: AppDimensions.sm),
               _SegmentedSelector<PetGender>(
@@ -176,7 +200,6 @@ class _AddPetPageState extends ConsumerState<AddPetPage> {
               ),
               const SizedBox(height: AppDimensions.md),
 
-              // Porte
               Text('Porte', style: AppTextStyles.labelLarge),
               const SizedBox(height: AppDimensions.sm),
               _SegmentedSelector<PetSize>(
@@ -187,7 +210,6 @@ class _AddPetPageState extends ConsumerState<AddPetPage> {
               ),
               const SizedBox(height: AppDimensions.md),
 
-              // Nível de energia
               Text('Nível de energia', style: AppTextStyles.labelLarge),
               const SizedBox(height: AppDimensions.sm),
               _SegmentedSelector<PetEnergyLevel>(
@@ -198,39 +220,106 @@ class _AddPetPageState extends ConsumerState<AddPetPage> {
               ),
               const SizedBox(height: AppDimensions.xl),
 
-              // Saúde
+              // ── Saúde ────────────────────────────────────────────────
               Text('Saúde', style: AppTextStyles.titleLarge),
-              const SizedBox(height: AppDimensions.sm),
-              _HealthCheckbox(
+              const SizedBox(height: AppDimensions.xs),
+              Text(
+                'Selecione o que se aplica ao pet. Escolha "Não sei" se não tiver certeza.',
+                style: AppTextStyles.bodySmall
+                    .copyWith(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: AppDimensions.md),
+
+              _HealthTristateRow(
                 label: 'Vacinado',
+                icon: Icons.vaccines_outlined,
                 value: _vaccinated,
-                onChanged: (v) => setState(() => _vaccinated = v!),
+                onChanged: (v) => setState(() => _vaccinated = v),
               ),
-              _HealthCheckbox(
+              const SizedBox(height: AppDimensions.sm),
+              _HealthTristateRow(
                 label: 'Castrado',
+                icon: Icons.cut_outlined,
                 value: _neutered,
-                onChanged: (v) => setState(() => _neutered = v!),
+                onChanged: (v) => setState(() => _neutered = v),
               ),
-              _HealthCheckbox(
+              const SizedBox(height: AppDimensions.sm),
+              _HealthTristateRow(
                 label: 'Vermifugado',
+                icon: Icons.medical_services_outlined,
                 value: _dewormed,
-                onChanged: (v) => setState(() => _dewormed = v!),
+                onChanged: (v) => setState(() => _dewormed = v),
               ),
               const SizedBox(height: AppDimensions.xl),
 
-              // Localização
+              // ── Localização ──────────────────────────────────────────
               Text('Localização', style: AppTextStyles.titleLarge),
+              const SizedBox(height: AppDimensions.sm),
+
+              // Checkbox "Usar minha localização"
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius:
+                      BorderRadius.circular(AppDimensions.radiusMd),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: CheckboxListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: AppDimensions.md,
+                    vertical: AppDimensions.xs,
+                  ),
+                  title: Text(
+                    'Usar minha localização',
+                    style: AppTextStyles.bodyLarge,
+                  ),
+                  subtitle: profileCity.isNotEmpty
+                      ? Text(
+                          profileCity,
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        )
+                      : Text(
+                          'Configure sua cidade no perfil',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.warning,
+                          ),
+                        ),
+                  secondary: Icon(
+                    Icons.my_location,
+                    color: _useMyLocation
+                        ? AppColors.primary
+                        : AppColors.textSecondary,
+                  ),
+                  value: _useMyLocation,
+                  activeColor: AppColors.primary,
+                  onChanged: (v) {
+                    setState(() {
+                      _useMyLocation = v ?? true;
+                      if (_useMyLocation) {
+                        _cityController.text = profileCity;
+                      } else {
+                        _cityController.clear();
+                      }
+                    });
+                  },
+                ),
+              ),
               const SizedBox(height: AppDimensions.md),
+
+              // Input de cidade — desabilitado se usar localização do perfil
               AppTextField(
                 label: 'Cidade',
                 hint: 'Ex: São Paulo',
                 controller: _cityController,
+                enabled: !_useMyLocation,
                 validator: (v) =>
                     v?.isEmpty == true ? 'Informe a cidade' : null,
               ),
               const SizedBox(height: AppDimensions.xl),
 
-              // Descrição
+              // ── Sobre o pet ──────────────────────────────────────────
               Text('Sobre o pet', style: AppTextStyles.titleLarge),
               const SizedBox(height: AppDimensions.md),
               AppTextField(
@@ -266,6 +355,9 @@ class _AddPetPageState extends ConsumerState<AddPetPage> {
   }
 }
 
+// ─── Widgets auxiliares ────────────────────────────────────────────────────────
+
+/// Seletor segmentado genérico (Espécie, Sexo, Porte, Energia).
 class _SegmentedSelector<T> extends StatelessWidget {
   final List<T> options;
   final T selected;
@@ -292,9 +384,8 @@ class _SegmentedSelector<T> extends StatelessWidget {
               margin: EdgeInsets.only(
                 right: option != options.last ? AppDimensions.xs : 0,
               ),
-              padding: const EdgeInsets.symmetric(
-                vertical: AppDimensions.sm,
-              ),
+              padding:
+                  const EdgeInsets.symmetric(vertical: AppDimensions.sm),
               decoration: BoxDecoration(
                 color: isSelected
                     ? AppColors.primary
@@ -302,14 +393,17 @@ class _SegmentedSelector<T> extends StatelessWidget {
                 borderRadius:
                     BorderRadius.circular(AppDimensions.radiusMd),
                 border: Border.all(
-                  color: isSelected ? AppColors.primary : AppColors.border,
+                  color:
+                      isSelected ? AppColors.primary : AppColors.border,
                 ),
               ),
               child: Text(
                 labelOf(option),
                 textAlign: TextAlign.center,
                 style: AppTextStyles.labelMedium.copyWith(
-                  color: isSelected ? Colors.white : AppColors.textSecondary,
+                  color: isSelected
+                      ? Colors.white
+                      : AppColors.textSecondary,
                 ),
               ),
             ),
@@ -320,26 +414,99 @@ class _SegmentedSelector<T> extends StatelessWidget {
   }
 }
 
-class _HealthCheckbox extends StatelessWidget {
+/// Linha de saúde com três opções: Sim / Não / Não sei.
+class _HealthTristateRow extends StatelessWidget {
   final String label;
-  final bool value;
-  final void Function(bool?) onChanged;
+  final IconData icon;
+  final HealthStatus value;
+  final void Function(HealthStatus) onChanged;
 
-  const _HealthCheckbox({
+  const _HealthTristateRow({
     required this.label,
+    required this.icon,
     required this.value,
     required this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    return CheckboxListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(label, style: AppTextStyles.bodyLarge),
-      value: value,
-      onChanged: onChanged,
-      activeColor: AppColors.primary,
-      controlAffinity: ListTileControlAffinity.leading,
+    return Row(
+      children: [
+        Icon(icon,
+            size: AppDimensions.iconMd, color: AppColors.textSecondary),
+        const SizedBox(width: AppDimensions.sm),
+        Expanded(
+          child: Text(label, style: AppTextStyles.bodyLarge),
+        ),
+        const SizedBox(width: AppDimensions.sm),
+        _HealthOption(
+          label: 'Sim',
+          isSelected: value == HealthStatus.yes,
+          selectedColor: AppColors.success,
+          onTap: () => onChanged(HealthStatus.yes),
+        ),
+        const SizedBox(width: AppDimensions.xs),
+        _HealthOption(
+          label: 'Não',
+          isSelected: value == HealthStatus.no,
+          selectedColor: AppColors.error,
+          onTap: () => onChanged(HealthStatus.no),
+        ),
+        const SizedBox(width: AppDimensions.xs),
+        _HealthOption(
+          label: 'Não sei',
+          isSelected: value == HealthStatus.unknown,
+          selectedColor: AppColors.textSecondary,
+          onTap: () => onChanged(HealthStatus.unknown),
+        ),
+      ],
+    );
+  }
+}
+
+/// Botão de opção individual para o tristate de saúde.
+class _HealthOption extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final Color selectedColor;
+  final VoidCallback onTap;
+
+  const _HealthOption({
+    required this.label,
+    required this.isSelected,
+    required this.selectedColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.sm,
+          vertical: AppDimensions.xs,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? selectedColor.withValues(alpha: 0.12)
+              : AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+          border: Border.all(
+            color: isSelected ? selectedColor : AppColors.border,
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: AppTextStyles.labelSmall.copyWith(
+            color: isSelected ? selectedColor : AppColors.textSecondary,
+            fontWeight:
+                isSelected ? FontWeight.w700 : FontWeight.w400,
+          ),
+        ),
+      ),
     );
   }
 }
