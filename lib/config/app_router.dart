@@ -8,6 +8,7 @@ import '../presentation/pages/pet_detail/pet_detail_page.dart';
 import '../presentation/pages/chat/chat_list_page.dart';
 import '../presentation/pages/chat/chat_detail_page.dart';
 import '../presentation/pages/profile/profile_page.dart';
+import '../presentation/pages/profile/edit_profile_page.dart';
 import '../presentation/pages/my_pets/my_pets_page.dart';
 import '../presentation/pages/my_pets/add_pet_page.dart';
 import '../presentation/providers/auth_provider.dart';
@@ -25,6 +26,7 @@ abstract final class AppRoutes {
   static const String profile = '/profile';
   static const String myPets = '/my-pets';
   static const String addPet = '/my-pets/add';
+  static const String editProfile = '/profile/edit';
 }
 
 /// Provider do roteador da aplicação.
@@ -106,6 +108,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.addPet,
         builder: (context, state) => const AddPetPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.editProfile,
+        builder: (context, state) => const EditProfilePage(),
       ),
     ],
   );

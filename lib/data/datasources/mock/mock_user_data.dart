@@ -9,6 +9,16 @@ abstract final class MockUserData {
         email: 'joao@example.com',
         displayName: 'João Silva',
         bio: 'Amo animais e faço parte de um grupo de apoio à adoção responsável.',
+        location: const UserLocation(city: 'São Paulo', state: 'SP'),
+        contact: const UserContact(
+          phone: '(11) 98765-4321',
+          whatsapp: '(11) 98765-4321',
+          instagram: '@joaosilva',
+        ),
+        privacy: const UserPrivacy(
+          showLocation: false,
+          showContact: false,
+        ),
         createdAt: DateTime(2026, 3, 1),
       );
 

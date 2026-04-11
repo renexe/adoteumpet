@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_dimensions.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../presentation/providers/auth_provider.dart';
 import '../../../presentation/providers/favorites_provider.dart';
 import '../../../presentation/widgets/pet_card.dart';
+import '../../../config/app_router.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -20,6 +22,12 @@ class ProfilePage extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Meu Perfil'),
         actions: [
+          // Botão de editar perfil
+          IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: () => context.push(AppRoutes.editProfile),
+            tooltip: 'Editar perfil',
+          ),
           IconButton(
             icon: const Icon(Icons.logout_outlined),
             onPressed: () => _showLogoutDialog(context, ref),
@@ -34,7 +42,7 @@ class ProfilePage extends ConsumerWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Header do perfil
+            // ── Header do perfil ─────────────────────────────────────
             Container(
               color: AppColors.surface,
               padding: const EdgeInsets.all(AppDimensions.lg),
@@ -42,7 +50,8 @@ class ProfilePage extends ConsumerWidget {
                 children: [
                   CircleAvatar(
                     radius: AppDimensions.avatarXl / 2,
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                    backgroundColor:
+                        AppColors.primary.withValues(alpha: 0.1),
                     child: Text(
                       user?.displayName.isNotEmpty == true
                           ? user!.displayName[0].toUpperCase()
@@ -64,6 +73,30 @@ class ProfilePage extends ConsumerWidget {
                       color: AppColors.textSecondary,
                     ),
                   ),
+
+                  // Localização pública
+                  if (user?.privacy.showLocation == true &&
+                      user?.location != null) ...[
+                    const SizedBox(height: AppDimensions.xs),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.location_on_outlined,
+                          size: AppDimensions.iconSm,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          user!.location!.displayName,
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+
                   if (user?.bio != null && user!.bio!.isNotEmpty) ...[
                     const SizedBox(height: AppDimensions.sm),
                     Text(
@@ -74,13 +107,97 @@ class ProfilePage extends ConsumerWidget {
                       textAlign: TextAlign.center,
                     ),
                   ],
+
+                  const SizedBox(height: AppDimensions.md),
+
+                  // Botão de editar perfil
+                  OutlinedButton.icon(
+                    onPressed: () =>
+                        context.push(AppRoutes.editProfile),
+                    icon: const Icon(Icons.edit_outlined, size: 16),
+                    label: const Text('Editar Perfil'),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.primary),
+                      foregroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppDimensions.lg,
+                        vertical: AppDimensions.xs,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
 
             const SizedBox(height: AppDimensions.sm),
 
-            // Seção de favoritos
+            // ── Contatos públicos ────────────────────────────────────
+            if (user?.privacy.showContact == true &&
+                user?.contact != null) ...[
+              _ContactSection(user: user!),
+              const SizedBox(height: AppDimensions.sm),
+            ],
+
+            // ── Aviso de contatos privados ───────────────────────────
+            if (user?.privacy.showContact == false) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDimensions.md,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(AppDimensions.md),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withValues(alpha: 0.08),
+                    borderRadius:
+                        BorderRadius.circular(AppDimensions.radiusMd),
+                    border: Border.all(
+                      color: AppColors.warning.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.lock_outline,
+                          color: AppColors.warning,
+                          size: AppDimensions.iconMd),
+                      const SizedBox(width: AppDimensions.sm),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Contatos privados',
+                              style: AppTextStyles.labelLarge.copyWith(
+                                color: AppColors.warning,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Seus contatos não são visíveis para outros usuários. Ative em Editar Perfil.',
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () =>
+                            context.push(AppRoutes.editProfile),
+                        child: Text(
+                          'Ativar',
+                          style: AppTextStyles.labelMedium.copyWith(
+                            color: AppColors.warning,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppDimensions.sm),
+            ],
+
+            // ── Favoritos ────────────────────────────────────────────
             Container(
               color: AppColors.surface,
               padding: const EdgeInsets.all(AppDimensions.md),
@@ -181,6 +298,76 @@ class ProfilePage extends ConsumerWidget {
             ),
             child: const Text('Sair'),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Seção de contatos públicos do perfil.
+class _ContactSection extends StatelessWidget {
+  final dynamic user;
+
+  const _ContactSection({required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    final contact = user.contact;
+    if (contact == null) return const SizedBox.shrink();
+
+    return Container(
+      color: AppColors.surface,
+      padding: const EdgeInsets.all(AppDimensions.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.contact_phone_outlined,
+                  color: AppColors.primary),
+              const SizedBox(width: AppDimensions.sm),
+              Text('Contatos', style: AppTextStyles.titleLarge),
+            ],
+          ),
+          const SizedBox(height: AppDimensions.md),
+          if (contact.phone != null)
+            _ContactRow(
+              icon: Icons.phone_outlined,
+              label: contact.phone!,
+            ),
+          if (contact.whatsapp != null)
+            _ContactRow(
+              icon: Icons.chat_outlined,
+              label: contact.whatsapp!,
+            ),
+          if (contact.instagram != null)
+            _ContactRow(
+              icon: Icons.alternate_email,
+              label: contact.instagram!,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ContactRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _ContactRow({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppDimensions.sm),
+      child: Row(
+        children: [
+          Icon(icon,
+              size: AppDimensions.iconMd,
+              color: AppColors.textSecondary),
+          const SizedBox(width: AppDimensions.sm),
+          Text(label, style: AppTextStyles.bodyMedium),
         ],
       ),
     );
