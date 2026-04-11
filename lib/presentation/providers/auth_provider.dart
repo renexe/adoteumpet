@@ -72,6 +72,32 @@ class AuthNotifier extends Notifier<AuthState> {
     state = state.copyWith(user: user, isLoading: false);
   }
 
+  /// Atualiza o perfil do usuário autenticado.
+  Future<void> updateProfile({
+    String? displayName,
+    String? bio,
+    String? profilePicture,
+    UserLocation? location,
+    UserContact? contact,
+    UserPrivacy? privacy,
+  }) async {
+    final current = state.user;
+    if (current == null) return;
+
+    state = state.copyWith(isLoading: true, clearError: true);
+    await Future.delayed(const Duration(milliseconds: 600));
+
+    final updated = current.copyWith(
+      displayName: displayName,
+      bio: bio,
+      profilePicture: profilePicture,
+      location: location,
+      contact: contact,
+      privacy: privacy,
+    );
+    state = state.copyWith(user: updated, isLoading: false);
+  }
+
   /// Realiza o logout do usuário.
   Future<void> signOut() async {
     state = state.copyWith(isLoading: true);
